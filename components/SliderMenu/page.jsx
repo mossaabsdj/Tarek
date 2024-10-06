@@ -23,10 +23,10 @@ const { width: screenWidth } = Dimensions.get("window");
 const SliderMenu = () => {
   const [open, setOpen] = useState(false);
   const slideAnim = useRef(new Animated.Value(screenWidth * 0.9)).current; // Use 80% of screen width
-  const [WelcomPaged, setWelcomPaged] = useState(false);
+  const [WelcomPaged, setWelcomPaged] = useState(true);
 
   const [SalesPage, setSales] = useState(false);
-  const [EnployeePage, setEnployee] = useState(true);
+  const [EnployeePage, setEnployee] = useState(false);
   const [ClientPage, setClient] = useState(false);
   const [FacturesPage, setFactures] = useState(false);
   const [ProduitPage, setProduit] = useState(false);

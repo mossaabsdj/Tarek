@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -10,12 +10,19 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
-
+import {
+  GetAll,
+  GetClient_FacturesPlat,
+  GetFactures_Factprod,
+  getProduiNomby_ID,
+  GetClient_FacturesMoney,
+  GetFacturesVersment,
+} from "@/app/Lib/bdd";
 // Column names
 const columns = [
-  { key: "name", label: "اللقب" },
-  { key: "prenam", label: "الاسم" },
-  { key: "num", label: "رقم الهاتف " },
+  { key: "Nom", label: "اللقب" },
+  { key: "Prenom", label: "الاسم" },
+  { key: "Num", label: "رقم الهاتف " },
   { key: "creditMoney", label: " دين المال" },
   { key: "creditOmbalage", label: " دين الاطباق" },
 ];
@@ -24,7 +31,7 @@ const columns = [
 const initialClients = [
   {
     id: "1",
-    name: "ساعد جاب الله",
+    Nom: "ساعد جاب الله",
     prenam: "مصعب",
     num: "123456789",
     creditMoney: 100,
@@ -32,7 +39,7 @@ const initialClients = [
   },
   {
     id: "2",
-    name: "ساعد جاب الله",
+    Nom: "ساعد جاب الله",
     prenam: "عثمان",
     num: "987654321",
     creditMoney: 200,
@@ -101,7 +108,8 @@ const ClientConsultation = () => {
   };
 
   const filteredClients = clients.filter((client) => {
-    return client.name.toLowerCase().includes(searchQuery.toLowerCase());
+    //console.log(client);
+    return client.Nom.toLowerCase().includes(searchQuery.toLowerCase());
   });
   const handleSearch_Fact = (query) => {
     setSearchQuery_Fact(query);
@@ -191,7 +199,102 @@ const ClientConsultation = () => {
       />
     </View>
   );
+  async function GetTotalCreditPlat() {
+    const clientss = await GetAll("Client", setClients);
+    for (let Client of clientss) {
+      var CreditPlat = [];
 
+      const Factures = await GetClient_FacturesPlat(Client.Client_ID);
+      for (let Fact of Factures) {
+        if (Fact) {
+          const FactProds = await GetFactures_Factprod(Fact.Facture_ID);
+          // console.log("FactProds" + JSON.stringify(FactProds));
+          for (let fp of FactProds) {
+            var nom = await getProduiNomby_ID(fp.Produit_ID);
+            if (nom) {
+              var object = { Produit: nom.Nom, Plat: fp.Plat };
+              const existingProduct = CreditPlat.find(
+                (item) => item.Produit === nom.Nom
+              ); // Check if the product exists
+              if (existingProduct) {
+                existingProduct.Plat += fp.Plat;
+              } else {
+                CreditPlat.push(object);
+              }
+            }
+          }
+        }
+      }
+      var creditOmbalagee = "";
+      CreditPlat.map((cp, i) => {
+        if (i === 0) {
+        } else {
+          creditOmbalagee = creditOmbalagee + "و";
+        }
+        creditOmbalagee =
+          creditOmbalagee + cp.Plat + ":" + "{" + cp.Produit + "}  ";
+      });
+      setClients((prevClients) =>
+        prevClients.map(
+          (cl) =>
+            cl.Client_ID === Client.Client_ID
+              ? {
+                  ...cl,
+                  creditOmbalage: creditOmbalagee,
+                } // Update creditOmbalage for the selected client
+              : cl // Keep other clients unchanged
+        )
+      );
+      // console.log("CreditPlat" + JSON.stringify(CreditPlat));
+    }
+  }
+
+  async function GetTotalCreditMoney() {
+    const clientss = await GetAll("Client", setClients);
+    for (let Client of clientss) {
+      var creditMoney = 0;
+      var Arrayversment = [];
+
+      const Factures = await GetClient_FacturesMoney(Client.Client_ID);
+      for (let Fact of Factures) {
+        if (Fact) {
+          console.log("facture" + Fact.Facture_ID);
+          const versment = await GetFacturesVersment(Fact.Facture_ID);
+          console.log("versment" + JSON.stringify(versment));
+          // console.log("FactProds" + JSON.stringify(FactProds));
+          if (versment) {
+            for (let ver of versment) {
+              Arrayversment.push(ver.Somme);
+            }
+            var factversment = Arrayversment.reduce(
+              (total, item) => total + item,
+              0
+            );
+            if (factversment < Fact.Montant_Total) {
+              creditMoney = creditMoney + (Fact.Montant_Total - factversment);
+            }
+          }
+        }
+      }
+
+      setClients((prevClients) =>
+        prevClients.map(
+          (cl) =>
+            cl.Client_ID === Client.Client_ID
+              ? {
+                  ...cl,
+                  creditMoney: creditMoney,
+                } // Update creditOmbalage for the selected client
+              : cl // Keep other clients unchanged
+        )
+      );
+      // console.log("CreditPlat" + JSON.stringify(CreditPlat));
+    }
+  }
+  useEffect(() => {
+    GetTotalCreditPlat();
+    GetTotalCreditMoney();
+  }, []);
   return (
     <View style={styles.container}>
       {ConsulterClient && (

@@ -1,16 +1,131 @@
 import * as SQLite from "expo-sqlite";
-
+import * as FileSystem from "expo-file-system";
+import { Asset } from "expo-asset";
 // Open or create the database named 'tarek'
 const db = SQLite.openDatabaseAsync("tarek.db");
+
 //--GetAll------------------------------------------
 async function GetAll(TableName, f) {
   const queryResult = await (
     await db
   ).getAllAsync("SELECT * FROM " + TableName + ";");
-  console.log("Query Result:", queryResult);
+  // console.log("Query Result:", queryResult);
   f(queryResult);
+  return queryResult;
   // Process the results to extract data
 }
+
+async function getProduitStatusByNom(nom, set) {
+  try {
+    // Prepare the SQL statement
+    const statement = await (
+      await db
+    ).prepareAsync("SELECT Return FROM produit WHERE Nom = $nom");
+
+    // Execute the statement with the product name
+    const result = await statement.executeAsync({ $nom: nom });
+    const r = result.getFirstAsync();
+    set(r); // Update state with the return status
+    return r;
+    // Finalize the statement to release resources
+    await statement.finalize();
+  } catch (error) {
+    console.error("Error fetching product status:", error);
+  }
+}
+async function getProduiNomby_ID(id) {
+  try {
+    // Prepare the SQL statement
+    const statement = await (
+      await db
+    ).prepareAsync("SELECT Nom FROM produit WHERE Produit_ID = $id");
+
+    // Execute the statement with the product name
+    const result = await statement.executeAsync({ $id: id });
+    const r = result.getFirstAsync();
+    return r;
+    // Finalize the statement to release resources
+    await statement.finalize();
+  } catch (error) {
+    console.error("Error fetching product status:", error);
+  }
+}
+async function GetClient_FacturesPlat(id) {
+  try {
+    // Prepare the SQL statement
+    const statement = await (
+      await db
+    ).prepareAsync(
+      "SELECT * FROM facture WHERE Client_ID = $id AND  ValiderPlat = 0 "
+    );
+
+    // Execute the statement with the product name
+    const result = await statement.executeAsync({ $id: id });
+    const r = result.getAllAsync();
+    return r;
+    // Finalize the statement to release resources
+    await statement.finalize();
+  } catch (error) {
+    console.error("Error fetching product status:", error);
+  }
+}
+async function GetClient_FacturesMoney(id) {
+  try {
+    // Prepare the SQL statement
+    const statement = await (
+      await db
+    ).prepareAsync(
+      "SELECT * FROM facture WHERE Client_ID = $id AND  ValiderMoney = 0 "
+    );
+
+    // Execute the statement with the product name
+    const result = await statement.executeAsync({ $id: id });
+    const r = result.getAllAsync();
+    return r;
+    // Finalize the statement to release resources
+    await statement.finalize();
+  } catch (error) {
+    console.error("Error fetching product status:", error);
+  }
+}
+async function GetFacturesVersment(id) {
+  try {
+    // Prepare the SQL statement
+    const statement = await (
+      await db
+    ).prepareAsync("SELECT * FROM Versment WHERE Facture_ID = $id ");
+
+    // Execute the statement with the product name
+    const result = await statement.executeAsync({ $id: id });
+    const r = result.getAllAsync();
+    return r;
+    // Finalize the statement to release resources
+    await statement.finalize();
+  } catch (error) {
+    console.error("Error fetching product status:", error);
+  }
+}
+
+async function GetFactures_Factprod(id) {
+  try {
+    // Prepare the SQL statement
+    const statement = await (
+      await db
+    ).prepareAsync(
+      "SELECT * FROM FactProd WHERE Facture_ID = $id AND  Plat > 0 "
+    );
+
+    // Execute the statement with the product name
+    const result = await statement.executeAsync({ $id: id });
+    const r = result.getAllAsync();
+    return r;
+    // Finalize the statement to release resources
+    await statement.finalize();
+  } catch (error) {
+    console.error("Error fetching product status:", error);
+  }
+}
+
 //--Produit---------------------------------------------------
 const addProduit = async (nom, prix, returnValue) => {
   try {
@@ -141,6 +256,7 @@ const addClient = async (nom, prenom, num) => {
       num
     );
     console.log("Client added successfully." + r.lastInsertRowId);
+    return r.lastInsertRowId;
   } catch (error) {
     console.error("Error adding client:", error);
   }
@@ -191,7 +307,7 @@ const addFacture = async (
   plat
 ) => {
   try {
-    await (
+    const r = await (
       await db
     ).runAsync(
       `
@@ -205,6 +321,7 @@ const addFacture = async (
       plat
     );
     console.log("Facture added successfully.");
+    return r.lastInsertRowId;
   } catch (error) {
     console.error("Error adding facture:", error);
   }
@@ -258,7 +375,7 @@ const deleteFacture = async (factureId) => {
 //--FactProd------------------------------------------------------
 const addFactProd = async (factureId, produitId, quantite, prixVente, plat) => {
   try {
-    await (
+    const r = await (
       await db
     ).runAsync(
       `
@@ -271,6 +388,8 @@ const addFactProd = async (factureId, produitId, quantite, prixVente, plat) => {
       prixVente,
       plat
     );
+    return r.lastInsertRowId;
+
     console.log("FactProd entry added successfully.");
   } catch (error) {
     console.error("Error adding FactProd entry:", error);
@@ -325,7 +444,7 @@ const deleteFactProd = async (factProdId) => {
 //--Versment ------------------------------------------------------
 const addVersment = async (factureId, somme) => {
   try {
-    await (
+    const r = await (
       await db
     ).runAsync(
       `
@@ -336,6 +455,7 @@ const addVersment = async (factureId, somme) => {
       somme
     );
     console.log("Versment added successfully.");
+    return r;
   } catch (error) {
     console.error("Error adding Versment:", error);
   }
@@ -525,4 +645,11 @@ module.exports = {
   addVersmentPlat,
   updateVersmentPlat,
   deleteVersmentPlat,
+  //-----
+  getProduitStatusByNom,
+  GetClient_FacturesPlat,
+  GetFactures_Factprod,
+  getProduiNomby_ID,
+  GetClient_FacturesMoney,
+  GetFacturesVersment,
 };

@@ -282,18 +282,24 @@ export default function SpanningTable({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: "white",
-    padding: 20,
+    padding: 0,
+    borderRadius: 20,
   },
   table: {
     margin: 20,
     // borderRadius: "20px",
     borderColor: "black",
+    borderRadius: 20,
+
     borderWidth: 1,
     boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)", // Use boxShadow for shadow effects
+    height: 500,
   },
   head: {
     backgroundColor: "dodgerblue",
     padding: 10,
+    borderTopEndRadius: 20,
+    borderTopStartRadius: 20,
     flexDirection: "row",
     justifyContent: "space-between",
   },
@@ -308,7 +314,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row-reverse",
     justifyContent: "space-between",
-    padding: 10,
+    padding: 9,
     borderBottomWidth: 1,
     borderBottomColor: "#ccc",
   },

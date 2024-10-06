@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import * as SQLite from "expo-sqlite";
+import * as FileSystem from "expo-file-system";
+
 import {
   GetAll,
   addProduit,
@@ -173,7 +175,11 @@ const ExampleComponent = () => {
     // addProduit("mosssaab", 20, true);
     // deleteProduit(2);
     GetAll("produit", setResult);
+    // Call the loadDatabase function
   }, []);
+  const dbFile = `${FileSystem.documentDirectory}SQLite/tarek.db`;
+
+  console.log("Database location:", dbFile);
 
   return (
     <View>

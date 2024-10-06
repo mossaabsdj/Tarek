@@ -11,8 +11,14 @@ import {
   Pressable,
   Alert,
 } from "react-native";
-import { GetAll, addClient } from "@/app/Lib/bdd";
-
+import {
+  GetAll,
+  addClient,
+  addFacture,
+  addFactProd,
+  addVersment,
+  getProduitStatusByNom,
+} from "@/app/Lib/bdd";
 import { Picker } from "@react-native-picker/picker"; // Correctly import Picker
 import FactTable from "@/components/FactTable/page";
 import { useEffect } from "react";
@@ -20,6 +26,8 @@ function Sales() {
   const Thead = ["المجموع", "الكمية", "السعر", "الاسم"];
 
   const [products, setproduct] = useState([{}]);
+  const [Status, setStatus] = useState([{ S: "s" }]);
+
   const [client, setclient] = useState([{}]);
   const [nom, setnom] = useState("");
   const [prenom, setprenom] = useState("");
@@ -29,7 +37,7 @@ function Sales() {
   const [CurrentClient_ID, setCurrentClient_ID] = useState();
   const [model, setmodel] = useState(true);
   const [Versment_Money, setVersment_Money] = useState(false);
-  const [paymentAmount, setpaymentAmount] = useState(0);
+  const [paymentAmount, setpaymentAmount] = useState();
   const [rows, setRows] = useState([]);
   const [selectedProductName, setSelectedProductName] = useState(
     products[0].Nom
@@ -45,27 +53,34 @@ function Sales() {
 
   const handleAdd = () => {
     // Find the selected product by its name
+
     const selectedProduct = products.find(
       (product) => product.Nom === selectedProductName
     );
+
     // Clone the product and add quantity
-    console.log(quantity);
-    if (quantity === "0" || quantity === "") {
+    console.log(quantity + selectedProductName);
+    if (!selectedProductName) {
+      Alert.alert("", "الرجاء إختيار منتج");
     } else {
-      const selected = { ...selectedProduct, Quantite: quantity };
-      setRows((prevRows) => [...prevRows, selected]); // Add new row to the existing array
+      if (quantity === "0" || quantity === "") {
+        Alert.alert("", "الرجاء إدخال الكمية");
+      } else {
+        const selected = { ...selectedProduct, Quantite: quantity };
+        setRows((prevRows) => [...prevRows, selected]); // Add new row to the existing array
+      }
     }
   };
   const deleteRow = (rowIndex) => {
     const updatedRows = rows.filter((_, index) => index !== rowIndex);
     setRows(updatedRows);
   };
-  const NewClient = () => {
+  const NewClient = async () => {
     if (!nom || !prenom || !num) {
       Alert.alert("خطأ", "الرجاء ملئ جميع معلومات الزبون الجديد");
       return;
     }
-    const r = addClient(nom, prenom, num);
+    const r = await addClient(nom, prenom, num);
     console.log("client added" + JSON.stringify(r));
     let client_ID = JSON.stringify(r);
     if (client_ID) {
@@ -76,7 +91,7 @@ function Sales() {
   };
   const selecteClient = () => {
     if (!selectedClient) {
-      setCurrentClient_ID(client[0].client_ID);
+      setCurrentClient_ID(client[0].Client_ID);
       setCurrentClient(client[0].Prenom);
       setmodel(false);
     }
@@ -88,8 +103,83 @@ function Sales() {
       setmodel(false);
     }
   };
-  const handelSave = () => {
-    setVersment_Money(true);
+  const handelSave = async () => {
+    const Montant_total = rows.reduce((total, item) => total + item.Sum, 0);
+    console.log("rows" + JSON.stringify(rows));
+    if (Montant_total === 0) {
+      Alert.alert("", "الرجاء ملأ الفاتورة للقيام بعملية التأكيد");
+    } else {
+      setpaymentAmount(Montant_total + "");
+      setVersment_Money(true);
+    }
+  };
+  const handleValider = async () => {
+    var plat = 0;
+    var valider_Money = true;
+    var valider_Plat = true;
+    for (let r of rows) {
+      console.log(r.Nom);
+      const Statu = await getProduitStatusByNom(r.Nom, setStatus);
+      console.log("return this ===" + JSON.stringify(Statu.Return));
+      if (Statu.Return === "true") {
+        plat = plat + parseInt(r.Quantite);
+      }
+    }
+    const Montant_total = rows.reduce((total, item) => total + item.Sum, 0);
+    console.log("Montant_total" + Montant_total);
+    console.log("CreditPlat=" + plat);
+    console.log("Versment_Money=" + paymentAmount);
+    console.log("Client_ID=" + CurrentClient_ID);
+
+    if (plat > 0) {
+      valider_Plat = false;
+    }
+    if (Montant_total > paymentAmount) {
+      valider_Money = false;
+    }
+    console.log(valider_Money, valider_Plat);
+    const Facture_ID = await addFacture(
+      CurrentClient_ID,
+      Montant_total,
+      valider_Money,
+      valider_Plat,
+      plat
+    );
+    console.log("r" + Facture_ID);
+    var ids = [];
+    for (let r of rows) {
+      let plat2 = 0;
+      const Statu = await getProduitStatusByNom(r.Nom, setStatus);
+      console.log("return this ===" + JSON.stringify(Statu.Return));
+      if (Statu.Return === "true") {
+        plat2 = plat2 + parseInt(r.Quantite);
+        const re = await addFactProd(
+          Facture_ID,
+          r.Produit_ID,
+          r.Quantite,
+          r.Prix,
+          plat2
+        );
+        console.log(
+          "add factprod" + Facture_ID,
+          r.Produit_ID,
+          r.Quantite,
+          r.Prix,
+          plat2
+        );
+        ids.push(re);
+      }
+    }
+    console.log(ids);
+    if (paymentAmount === "" || paymentAmount === 0) {
+      console.log("nes pase add versment");
+    } else {
+      const ver = await addVersment(Facture_ID, paymentAmount);
+      console.log(JSON.stringify(ver));
+    }
+
+    setRows([]);
+    setVersment_Money(false);
   };
 
   useEffect(() => {
@@ -100,6 +190,7 @@ function Sales() {
   useEffect(() => {
     if (!model) {
       GetAll("produit", setproduct);
+      setSelectedProductName(products[0].Nom);
     }
   }, [model]);
   useEffect(() => {
@@ -129,7 +220,7 @@ function Sales() {
                 onChangeText={setpaymentAmount}
               />
 
-              <Button title="تأكيد الدفع" />
+              <Button title="تأكيد الدفع" onPress={handleValider} />
               <Button
                 title="الغاء"
                 onPress={() => setVersment_Money(false)}
@@ -249,7 +340,7 @@ function Sales() {
             onChangeText={setQuantity}
           />
 
-          <Button title="Add" onPress={handleAdd} />
+          <Button title="إضافة" onPress={handleAdd} />
         </View>
       </View>
 
