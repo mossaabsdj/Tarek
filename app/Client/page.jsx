@@ -1,23 +1,31 @@
-import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TextInput,
-  Button,
-  Modal,
-  TouchableOpacity,
-  ScrollView,
-} from "react-native";
-import {
+  addVersment,
+  addVersmentPlat,
+  deleteClient,
+  deleteVersment,
+  deleteVersmentPlat,
   GetAll,
+  GetClient_FacturesMoney,
   GetClient_FacturesPlat,
   GetFactures_Factprod,
-  getProduiNomby_ID,
-  GetClient_FacturesMoney,
   GetFacturesVersment,
+  GetFacturesVersmentPlat,
+  getProduiNomby_ID,
+  updateClient,
+  updateFactureValiderMoney,
+  updateFactureValiderPlat,
 } from "@/app/Lib/bdd";
+import React, { useEffect, useState } from "react";
+import {
+  Button,
+  FlatList,
+  Modal,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 // Column names
 const columns = [
   { key: "Nom", label: "اللقب" },
@@ -48,19 +56,19 @@ const initialClients = [
 ];
 const initialFactures = [
   {
-    id: "1",
+    Facture_ID: "1",
     montantTotal: 500,
     reste: 200,
     date: "2024-09-30",
   },
   {
-    id: "2",
+    Facture_ID: "2",
     montantTotal: 300,
     reste: 50,
     date: "2024-09-28",
   },
   {
-    id: "3",
+    Facture_ID: "3",
     montantTotal: 700,
     reste: 350,
     date: "2024-09-25",
@@ -68,7 +76,7 @@ const initialFactures = [
 ];
 const initialFactures_Plat = [
   {
-    id: "1",
+    Facture_ID: "1",
     montantTotal: 500,
     reste: 20,
     date: "2024-09-30",
@@ -88,6 +96,10 @@ const initialFactures_Plat = [
 ];
 
 const ClientConsultation = () => {
+  const [Versment, setVersment] = useState([]);
+  const [VersmentPlat, setVersmentPlat] = useState([]);
+
+  const [facturesplat, setFacturesplat] = useState(initialFactures);
   const [factures, setFactures] = useState(initialFactures);
   const [clients, setClients] = useState(initialClients);
   const [searchQuery, setSearchQuery] = useState("");
@@ -102,7 +114,37 @@ const ClientConsultation = () => {
   const [paymentAmount, setpaymentAmount] = useState(0);
   const [Versment_Plat, setVersment_Plat] = useState(false);
   const [NbrPlat, setNbrPlat] = useState(0);
+  const arabicMonths = [
+    "يناير",
+    "فبراير",
+    "مارس",
+    "أبريل",
+    "مايو",
+    "يونيو",
+    "يوليو",
+    "أغسطس",
+    "سبتمبر",
+    "أكتوبر",
+    "نوفمبر",
+    "ديسمبر",
+  ];
 
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+
+    // Get day, month, year, and time components
+    const day = date.getDate(); // Day in Arabic
+    const month = arabicMonths[date.getMonth()]; // Month in Arabic
+    const year = date.getFullYear(); // Year in French
+    const options = {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true, // Change to false for 24-hour format
+    };
+    const time = date.toLocaleString("fr-FR", options); // Time in French
+
+    return `${day} ${month} ${year}, ${time}`; // Combine components
+  };
   const handleSearch = (query) => {
     setSearchQuery(query);
   };
@@ -115,87 +157,187 @@ const ClientConsultation = () => {
     setSearchQuery_Fact(query);
   };
   const filteredFact = factures.filter((Fact) => {
-    return Fact.id.toLowerCase().includes(SearchQuery_Fact.toLowerCase());
+    return String(Fact.Facture_ID)
+      .toLowerCase()
+      .includes(SearchQuery_Fact.toLowerCase());
+  });
+  const filteredFactPlat = facturesplat.filter((Fact) => {
+    return String(Fact.Facture_ID)
+      .toLowerCase()
+      .includes(SearchQuery_Fact.toLowerCase());
   });
   const handleModifyClient = (client) => {
     setEditClient(client);
     seteditClientmodel(true);
   };
-  const handleMoneyCredit = (client) => {
-    setEditClient(client);
-    setMoneyCredit(true);
-  };
-  const handlePlatCredit = (client) => {
-    setEditClient(client);
-    setPlatCredit(true);
-  };
-
-  const handleSaveChanges = () => {
-    setClients((prevClients) =>
-      prevClients.map((client) =>
-        client.id === editClient.id ? editClient : client
-      )
+  const handleSaveChanges = async () => {
+    console.log(
+      editClient.Client_ID,
+      editClient.Nom,
+      editClient.Prenom,
+      editClient.Num
     );
+    await updateClient(
+      editClient.Client_ID,
+      editClient.Nom,
+      editClient.Prenom,
+      editClient.Num
+    );
+    await GetAll("client", setClients);
+    GetTotalCreditMoney();
+    GetTotalCreditPlat();
     seteditClientmodel(false);
   };
+  const Delete = async (client) => {
+    await deleteClient(client.Client_ID);
+    await GetAll("Client", setClients);
+  };
 
+  const handelAddVersment = async () => {
+    console.log(selectedFacture, paymentAmount);
+    addVersment(selectedFacture, paymentAmount);
+    setVersment_Money(false);
+    GetFacturesMoney(editClient);
+    // VersmentFacture();
+  };
+  const handelAddVersmentPlat = async () => {
+    console.log(selectedFacture, NbrPlat);
+    addVersmentPlat(selectedFacture, NbrPlat);
+    setVersment_Plat(false);
+    // VersmentFacturePlat();
+    handlePlatCredit(editClient);
+  };
+  async function VersmentFacture() {
+    const r = await GetFacturesVersment(selectedFacture);
+    console.log(r);
+    setVersment(r);
+  }
+  async function VersmentFacturePlat() {
+    const r = await GetFacturesVersmentPlat(selectedFacture);
+    console.log(r);
+    setVersmentPlat(r);
+  }
+  const DeleteVersment = async (versment) => {
+    console.log(versment.Versment_ID);
+    deleteVersment(versment.Versment_ID);
+    updateFactureValiderMoney(versment.Facture_ID, 0);
+    VersmentFacture();
+  };
   const renderClientItem = ({ item }) => (
     <View style={styles.card}>
       <Text style={styles.title}>معلومات الزبون</Text>
       {columns.map((column) => (
-        <Text style={styles.label} key={column.key}>
+        <Text style={styles.label} key={item.Client_ID + column.key}>
           {column.label}: <Text style={styles.value}>{item[column.key]}</Text>
         </Text>
       ))}
-      <Button
-        title="متابعة ديون المال"
-        onPress={() => handleMoneyCredit(item)}
-      />
-      <Button
-        title="متابعة ديون الاطباق"
-        onPress={() => handlePlatCredit(item)}
-      />
-      <Button title="تعديل" onPress={() => handleModifyClient(item)} />
+
+      {/* Button container to align buttons in a grid at the bottom */}
+      <View style={styles.buttonContainer}>
+        <Button
+          title="متابعة ديون المال"
+          onPress={() => GetFacturesMoney(item)}
+        />
+        <Button
+          title="متابعة ديون الاطباق"
+          onPress={() => handlePlatCredit(item)}
+        />
+        <Button title="تعديل" onPress={() => handleModifyClient(item)} />
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => Delete(item)}
+        >
+          <Text style={styles.deleteButtonText}>حدف الزبون</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const renderVersment = ({ item: versment }) => (
+    <View style={styles.versmentContainer}>
+      <Text style={styles.title}>تفاصيل الدفع</Text>
+      <View key={versment.Versment_ID} style={styles.versmentItem}>
+        <Text style={styles.label}>
+          تاريخ الدفع:
+          <Text style={styles.value}>{formatDate(versment.Date)}</Text>
+        </Text>
+        <Text style={styles.label}>
+          مبلغ الدفع: <Text style={styles.value}>{versment.Somme}</Text>
+        </Text>
+        {/* Button to delete payment */}
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => DeleteVersment(versment)}
+        >
+          <Text style={styles.deleteButtonText}>حدف الدفع</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const renderVersmentPlat = ({ item: versmentPlat }) => (
+    <View style={styles.versmentContainer}>
+      <Text style={styles.title}>تفاصيل الدفع</Text>
+      <View key={versmentPlat.VersmentPlat_ID} style={styles.versmentItem}>
+        <Text style={styles.label}>
+          تاريخ الدفع:
+          <Text style={styles.value}>{formatDate(versmentPlat.Date)}</Text>
+        </Text>
+        <Text style={styles.label}>
+          مبلغ الدفع: <Text style={styles.value}>{versmentPlat.Plat}</Text>
+        </Text>
+        {/* Button to delete payment */}
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => DeleteVersmentPlat(versmentPlat)}
+        >
+          <Text style={styles.deleteButtonText}>حدف الدفع</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
   const renderFactureItem = ({ item }) => (
     <View style={styles.card}>
       <Text style={styles.label}>
-        رقم الفاتورة: <Text style={styles.value}>{item.id}</Text>
+        رقم الفاتورة: <Text style={styles.value}>{item.Facture_ID}</Text>
       </Text>
       <Text style={styles.label}>
-        اٍجمالي المبلع :{" "}
-        <Text style={styles.value}>{item.montantTotal} DA</Text>
+        اٍجمالي المبلع :
+        <Text style={styles.value}> {item.Montant_Total}DA </Text>
       </Text>
       <Text style={styles.label}>
-        الباقي: <Text style={styles.value}>{item.reste} DA</Text>
+        الباقي: <Text style={styles.value}>{item.Reste}DA</Text>
       </Text>
       <Text style={styles.label}>
-        التاريخ: <Text style={styles.value}>{item.date}</Text>
+        التاريخ: <Text style={styles.value}>{formatDate(item.Date_Creat)}</Text>
       </Text>
       <Button
         title="دفع"
-        onPress={() => setVersment_Money(true) + setselectedFacture(item.id)}
+        onPress={() =>
+          setVersment_Money(true) + setselectedFacture(item.Facture_ID)
+        }
       />
     </View>
   );
   const renderFactureItemfor_Plat = ({ item }) => (
     <View style={styles.card}>
       <Text style={styles.label}>
-        رقم الفاتورة: <Text style={styles.value}>{item.id}</Text>
+        رقم الفاتورة: <Text style={styles.value}>{item.Facture_ID}</Text>
       </Text>
       <Text style={styles.label}>
-        اٍجمالي المبلع :<Text style={styles.value}>{item.montantTotal} DA</Text>
+        اٍجمالي الأطباق :<Text style={styles.value}>{item.Plat} </Text>
       </Text>
       <Text style={styles.label}>
         باقي الاطباق: <Text style={styles.value}>{item.reste} طبق</Text>
       </Text>
       <Text style={styles.label}>
-        التاريخ: <Text style={styles.value}>{item.date}</Text>
+        التاريخ: <Text style={styles.value}>{formatDate(item.Date_Creat)}</Text>
       </Text>
       <Button
         title="  ارجاع أطباق"
-        onPress={() => setVersment_Plat(true) + setselectedFacture(item.id)}
+        onPress={() =>
+          setVersment_Plat(true) + setselectedFacture(item.Facture_ID)
+        }
       />
     </View>
   );
@@ -248,7 +390,6 @@ const ClientConsultation = () => {
       // console.log("CreditPlat" + JSON.stringify(CreditPlat));
     }
   }
-
   async function GetTotalCreditMoney() {
     const clientss = await GetAll("Client", setClients);
     for (let Client of clientss) {
@@ -258,12 +399,11 @@ const ClientConsultation = () => {
       const Factures = await GetClient_FacturesMoney(Client.Client_ID);
       for (let Fact of Factures) {
         if (Fact) {
-          console.log("facture" + Fact.Facture_ID);
           const versment = await GetFacturesVersment(Fact.Facture_ID);
           console.log("versment" + JSON.stringify(versment));
-          // console.log("FactProds" + JSON.stringify(FactProds));
           if (versment) {
             for (let ver of versment) {
+              console.log();
               Arrayversment.push(ver.Somme);
             }
             var factversment = Arrayversment.reduce(
@@ -271,8 +411,10 @@ const ClientConsultation = () => {
               0
             );
             if (factversment < Fact.Montant_Total) {
+              console.log(factversment + "===" + Fact.Montant_Total);
               creditMoney = creditMoney + (Fact.Montant_Total - factversment);
             }
+            console.log("creditMoney" + creditMoney);
           }
         }
       }
@@ -291,10 +433,126 @@ const ClientConsultation = () => {
       // console.log("CreditPlat" + JSON.stringify(CreditPlat));
     }
   }
+  async function GetFacturesMoney(client) {
+    const factures = await GetClient_FacturesMoney(client.Client_ID);
+    setFactures(factures);
+    for (let Fact of factures) {
+      var RestFacture = 0;
+      var Arrayversment = [];
+      const versment = await GetFacturesVersment(Fact.Facture_ID);
+      if (versment) {
+        for (let ver of versment) {
+          var somme = parseInt(ver.Somme, 10);
+          if (ver.Somme === "") {
+            somme = 0;
+          }
+
+          Arrayversment.push(somme);
+        }
+        var factversment = Arrayversment.reduce(
+          (total, item) => total + item,
+          0
+        );
+
+        if (factversment < Fact.Montant_Total) {
+          RestFacture = Fact.Montant_Total - factversment;
+        } else if (
+          factversment === Fact.Montant_Total ||
+          factversment > Fact.Montant_Total
+        ) {
+          const r = await updateFactureValiderMoney(Fact.Facture_ID, 1);
+        }
+      }
+      setFactures((prevFactures) =>
+        prevFactures.map(
+          (cl) =>
+            cl.Facture_ID === Fact.Facture_ID
+              ? {
+                  ...cl,
+                  Reste: RestFacture,
+                } // Update creditOmbalage for the selected client
+              : cl // Keep other clients unchanged
+        )
+      );
+    }
+
+    setEditClient(client);
+    setMoneyCredit(true);
+  }
+  const handlePlatCredit = async (client) => {
+    const factures = await GetClient_FacturesPlat(client.Client_ID);
+    console.log(factures);
+
+    setFacturesplat(factures);
+    for (let Fact of factures) {
+      var RestFacture = 0;
+      var Arrayversment = [];
+      const versment = await GetFacturesVersmentPlat(Fact.Facture_ID);
+      if (versment) {
+        for (let ver of versment) {
+          var somme = parseInt(ver.Plat, 10);
+          if (ver.Plat === "") {
+            somme = 0;
+          }
+
+          Arrayversment.push(somme);
+        }
+        var factversment = Arrayversment.reduce(
+          (total, item) => total + item,
+          0
+        );
+        console.log("Fact.plat" + Fact.Plat);
+        if (factversment < Fact.Plat) {
+          RestFacture = Fact.Plat - factversment;
+        } else if (factversment === Fact.Plat || factversment > Fact.Plat) {
+          const r = await updateFactureValiderPlat(Fact.Facture_ID, 1);
+        }
+      }
+      setFacturesplat((prevFactures) =>
+        prevFactures.map(
+          (cl) =>
+            cl.Facture_ID === Fact.Facture_ID
+              ? {
+                  ...cl,
+                  reste: RestFacture,
+                } // Update creditOmbalage for the selected client
+              : cl // Keep other clients unchanged
+        )
+      );
+    }
+
+    setEditClient(client);
+    setPlatCredit(true);
+  };
+  const DeleteVersmentPlat = (VersmentPlat) => {
+    console.log(VersmentPlat.Versment_ID);
+    deleteVersmentPlat(VersmentPlat.Versment_ID);
+    updateFactureValiderPlat(VersmentPlat.Facture_ID, 0);
+    VersmentFacturePlat();
+  };
+
+  useEffect(() => {
+    if (Versment_Money) {
+      VersmentFacture();
+    }
+    if (!Versment_Money) {
+      GetFacturesMoney(editClient);
+    }
+  }, [Versment_Money]);
   useEffect(() => {
     GetTotalCreditPlat();
-    GetTotalCreditMoney();
   }, []);
+  useEffect(() => {
+    if (!MoneyCredit) {
+      GetTotalCreditMoney();
+      GetTotalCreditPlat();
+    }
+    if (!PlatCredit) {
+      GetTotalCreditMoney();
+      GetTotalCreditPlat();
+    }
+  }, [MoneyCredit, PlatCredit]);
+
   return (
     <View style={styles.container}>
       {ConsulterClient && (
@@ -311,7 +569,7 @@ const ClientConsultation = () => {
           <FlatList
             data={filteredClients}
             renderItem={renderClientItem}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => item.Client_ID}
           />
         </View>
       )}
@@ -343,25 +601,25 @@ const ClientConsultation = () => {
 
               <TextInput
                 style={styles.input}
-                value={editClient.name}
+                value={editClient.Nom}
                 onChangeText={(text) =>
-                  setEditClient({ ...editClient, name: text })
+                  setEditClient({ ...editClient, Nom: text })
                 }
                 placeholder="Name"
               />
               <TextInput
                 style={styles.input}
-                value={editClient.prenam}
+                value={editClient.Prenom}
                 onChangeText={(text) =>
-                  setEditClient({ ...editClient, prenam: text })
+                  setEditClient({ ...editClient, Prenom: text })
                 }
                 placeholder="Surname"
               />
               <TextInput
                 style={styles.input}
-                value={editClient.num}
+                value={editClient.Num}
                 onChangeText={(text) =>
-                  setEditClient({ ...editClient, num: text })
+                  setEditClient({ ...editClient, Num: text })
                 }
                 placeholder="Phone Number"
               />
@@ -413,7 +671,8 @@ const ClientConsultation = () => {
               <Text style={{ color: "white", textAlign: "center" }}>خروج</Text>
             </TouchableOpacity>
             <Text style={styles.modalTitle}>
-              {editClient.name} :فواتير الزبون
+              فواتير الزبون:
+              {editClient.Nom}
             </Text>
             <TextInput
               style={styles.searchInput}
@@ -424,7 +683,7 @@ const ClientConsultation = () => {
             <FlatList
               data={filteredFact}
               renderItem={renderFactureItem}
-              keyExtractor={(item) => item.id}
+              keyExtractor={(item) => item.Facture_ID}
             />
           </View>
         </Modal>
@@ -463,7 +722,7 @@ const ClientConsultation = () => {
             />
 
             <FlatList
-              data={filteredFact}
+              data={filteredFactPlat}
               renderItem={renderFactureItemfor_Plat}
               keyExtractor={(item) => item.id}
             />
@@ -472,31 +731,50 @@ const ClientConsultation = () => {
       )}
       {/* Modal for Editing Vesment_Money */}
       {Versment_Money && (
-        <Modal
-          animationType="slide"
-          transparent={true} // Make the modal background transparent
-          visible={Versment_Money}
-          onRequestClose={() => setVersment_Money(false)}
-        >
-          <View style={styles.modalBackground}>
-            <View style={styles.modalView}>
-              <TextInput
-                style={styles.input}
-                keyboardType="numeric"
-                placeholder="ادخل قيمة الدفع"
-                value={paymentAmount}
-                onChangeText={setpaymentAmount}
-              />
+        <View>
+          <Modal
+            animationType="slide"
+            transparent={true} // Make the modal background transparent
+            visible={Versment_Money}
+            onRequestClose={() => setVersment_Money(false)}
+          >
+            <View style={styles.modalBackground}>
+              <View style={styles.modalViewVersment}>
+                <View
+                  style={{
+                    position: "absolute",
+                    width: 60,
+                    top: 0,
+                    zIndex: 100,
 
-              <Button title="تأكيد الدفع" />
-              <Button
-                title="الغاء"
-                onPress={() => setVersment_Money(false)}
-                color="red"
-              />
+                    borderRadius: 10,
+                  }}
+                >
+                  <Button
+                    title="خروج"
+                    onPress={() => setVersment_Money(false)}
+                    color="red"
+                  />
+                </View>
+                <TextInput
+                  style={styles.input}
+                  keyboardType="numeric"
+                  placeholder="ادخل قيمة الدفع"
+                  value={paymentAmount}
+                  onChangeText={setpaymentAmount}
+                />
+
+                <Button title="تأكيد الدفع" onPress={handelAddVersment} />
+
+                <FlatList
+                  data={Versment}
+                  renderItem={renderVersment}
+                  keyExtractor={(item) => item.Versment_ID}
+                />
+              </View>
             </View>
-          </View>
-        </Modal>
+          </Modal>
+        </View>
       )}
       {Versment_Plat && (
         <Modal
@@ -506,24 +784,39 @@ const ClientConsultation = () => {
           onRequestClose={() => setVersment_Plat(false)}
         >
           <View style={styles.modalBackground}>
-            <View style={styles.modalView}>
+            <View style={styles.modalViewVersment}>
+              <View
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  width: 60,
+                  borderRadius: 10,
+                }}
+              >
+                <Button
+                  title="خروج"
+                  onPress={() => setVersment_Plat(false)}
+                  color="red"
+                />
+              </View>
               <Text style={styles.modalTitle}>
                 ارجاع للفاتورة ذات الرقم:{selectedFacture}
               </Text>
 
               <TextInput
-                style={styles.input}
+                style={styles.inputv}
                 keyboardType="numeric"
                 placeholder="ادخل عدد الأطباق "
                 value={NbrPlat}
                 onChangeText={setNbrPlat}
               />
 
-              <Button title="تأكيد الارجاع" />
-              <Button
-                title="الغاء"
-                onPress={() => setVersment_Plat(false)}
-                color="red"
+              <Button title="تأكيد الارجاع" onPress={handelAddVersmentPlat} />
+
+              <FlatList
+                data={VersmentPlat}
+                renderItem={renderVersmentPlat}
+                keyExtractor={(item) => item.Versment_ID}
               />
             </View>
           </View>
@@ -581,6 +874,18 @@ const styles = StyleSheet.create({
   value: {
     fontWeight: "bold",
   },
+  modalViewVersment: {
+    margin: 20,
+    backgroundColor: "white",
+    borderRadius: 10,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+    width: "100%",
+    height: "100%",
+  },
   modalView: {
     margin: 20,
     backgroundColor: "white",
@@ -590,6 +895,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
+    height: 720,
   },
   modalTitle: {
     fontSize: 20,
@@ -603,6 +909,82 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
     marginBottom: 10,
+    marginTop: 20,
+  },
+  inputv: {
+    borderWidth: 1,
+    borderColor: "gray",
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 10,
+    marginTop: 20,
+  },
+  card: {
+    padding: 20,
+    marginBottom: 20,
+    borderRadius: 10,
+    backgroundColor: "#fff",
+    elevation: 2,
+    position: "relative",
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  label: {
+    fontSize: 16,
+    marginBottom: 5,
+  },
+  value: {
+    fontWeight: "bold",
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap", // Allows buttons to wrap onto the next row if necessary
+    justifyContent: "space-between", // Distribute buttons evenly
+    marginTop: 10,
+  },
+  deleteButton: {
+    marginTop: 10,
+
+    backgroundColor: "red",
+    padding: 10,
+    borderRadius: 5,
+    flex: 1, // Takes up space in the row
+    marginLeft: 5,
+  },
+  deleteButtonText: {
+    color: "white",
+    textAlign: "center",
+  },
+
+  versmentContainer: {
+    padding: 20,
+    marginBottom: 20,
+    borderRadius: 10,
+    backgroundColor: "#fff",
+  },
+
+  versmentItem: {
+    marginBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ccc",
+    paddingBottom: 10,
+  },
+  deleteButton: {
+    backgroundColor: "red",
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 10,
+  },
+  deleteButtonText: {
+    color: "white",
+    textAlign: "center",
+  },
+  addButtonContainer: {
+    marginTop: 20,
   },
 });
 

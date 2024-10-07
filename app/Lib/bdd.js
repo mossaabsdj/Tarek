@@ -2,7 +2,7 @@ import * as SQLite from "expo-sqlite";
 import * as FileSystem from "expo-file-system";
 import { Asset } from "expo-asset";
 // Open or create the database named 'tarek'
-const db = SQLite.openDatabaseAsync("tarek.db");
+const db = SQLite.openDatabaseAsync("tarek1.db");
 
 //--GetAll------------------------------------------
 async function GetAll(TableName, f) {
@@ -94,6 +94,23 @@ async function GetFacturesVersment(id) {
     const statement = await (
       await db
     ).prepareAsync("SELECT * FROM Versment WHERE Facture_ID = $id ");
+
+    // Execute the statement with the product name
+    const result = await statement.executeAsync({ $id: id });
+    const r = result.getAllAsync();
+    return r;
+    // Finalize the statement to release resources
+    await statement.finalize();
+  } catch (error) {
+    console.error("Error fetching product status:", error);
+  }
+}
+async function GetFacturesVersmentPlat(id) {
+  try {
+    // Prepare the SQL statement
+    const statement = await (
+      await db
+    ).prepareAsync("SELECT * FROM VersmentPlat WHERE Facture_ID = $id ");
 
     // Execute the statement with the product name
     const result = await statement.executeAsync({ $id: id });
@@ -355,6 +372,54 @@ const updateFacture = async (
     console.error("Error updating facture:", error);
   }
 };
+const updateFactureValiderMoney = async (
+  factureId,
+
+  validerMoney
+) => {
+  try {
+    await (
+      await db
+    ).runAsync(
+      `
+      UPDATE facture
+      SET  ValiderMoney = ?
+      WHERE Facture_ID = ?;
+    `,
+
+      validerMoney,
+
+      factureId
+    );
+    console.log("Facture updated successfully.");
+  } catch (error) {
+    console.error("Error updating facture:", error);
+  }
+};
+const updateFactureValiderPlat = async (
+  factureId,
+
+  validerPlat
+) => {
+  try {
+    await (
+      await db
+    ).runAsync(
+      `
+      UPDATE facture
+      SET  ValiderPlat = ?
+      WHERE Facture_ID = ?;
+    `,
+
+      validerPlat,
+
+      factureId
+    );
+    console.log("Facture updated successfully.");
+  } catch (error) {
+    console.error("Error updating facture:", error);
+  }
+};
 const deleteFacture = async (factureId) => {
   try {
     await (
@@ -551,58 +616,49 @@ const deleteCreditEmployee = async (creditId) => {
 };
 //---------------------------------------------------------
 //--VersmentPlat ------------------------------------------------------
-const addVersmentPlat = async (platId, somme) => {
+const addVersmentPlat = async (Facture_ID, Plat) => {
   try {
     await (
       await db
-    ).runAsync(
-      `
-      INSERT INTO VersmentPlat (Plat_ID, Somme, Date)
-      VALUES (?, ?, datetime('now', 'localtime'));
-    `,
-      platId,
-      somme
-    );
-    console.log("VersmentPlat added successfully.");
+    ).execAsync(`
+      INSERT INTO VersmentPlat (Facture_ID, Plat)
+      VALUES (${Facture_ID}, ${Plat});
+    `);
+    console.log("VersmentPlat entry added successfully.");
   } catch (error) {
-    console.error("Error adding VersmentPlat:", error);
+    console.error("Error adding VersmentPlat entry:", error);
   }
 };
-const updateVersmentPlat = async (versmentPlatId, platId, somme) => {
+
+const updateVersmentPlat = async (VersmentPlat_ID, Facture_ID, Plat) => {
   try {
     await (
       await db
-    ).runAsync(
-      `
+    ).execAsync(`
       UPDATE VersmentPlat
-      SET Plat_ID = ?, Somme = ?
-      WHERE VersmentPlat_ID = ?;
-    `,
-      platId,
-      somme,
-      versmentPlatId
-    );
-    console.log("VersmentPlat updated successfully.");
+      SET Facture_ID = ${Facture_ID}, Plat = ${Plat}
+      WHERE VersmentPlat_ID = ${VersmentPlat_ID};
+    `);
+    console.log("VersmentPlat entry updated successfully.");
   } catch (error) {
-    console.error("Error updating VersmentPlat:", error);
+    console.error("Error updating VersmentPlat entry:", error);
   }
 };
-const deleteVersmentPlat = async (versmentPlatId) => {
+
+const deleteVersmentPlat = async (VersmentPlat_ID) => {
   try {
     await (
       await db
-    ).runAsync(
-      `
+    ).execAsync(`
       DELETE FROM VersmentPlat
-      WHERE VersmentPlat_ID = ?;
-    `,
-      versmentPlatId
-    );
-    console.log("VersmentPlat deleted successfully.");
+      WHERE VersmentPlat_ID = ${VersmentPlat_ID};
+    `);
+    console.log("VersmentPlat entry deleted successfully.");
   } catch (error) {
-    console.error("Error deleting VersmentPlat:", error);
+    console.error("Error deleting VersmentPlat entry:", error);
   }
 };
+
 //--------------------------------------------------------------
 module.exports = {
   GetAll,
@@ -624,6 +680,7 @@ module.exports = {
   // Facture table methods
   addFacture,
   updateFacture,
+  updateFactureValiderMoney,
   deleteFacture,
 
   // FactProd table methods
@@ -652,4 +709,6 @@ module.exports = {
   getProduiNomby_ID,
   GetClient_FacturesMoney,
   GetFacturesVersment,
+  GetFacturesVersmentPlat,
+  updateFactureValiderPlat,
 };

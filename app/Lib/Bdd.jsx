@@ -8,10 +8,11 @@ import {
   addProduit,
   updateProduit,
   deleteProduit,
+  ScrollView,
   // Import other functions here...
 } from "@/app/Lib/bdd";
 // Open or create the database named 'tarek'
-//const db = SQLite.openDatabaseAsync("tarek.db");
+const db = SQLite.openDatabaseAsync("tarek1.db");
 
 const ExampleComponent = () => {
   const [result, setResult] = useState([]);
@@ -174,7 +175,8 @@ const ExampleComponent = () => {
     //createVersmentPlatTable();
     // addProduit("mosssaab", 20, true);
     // deleteProduit(2);
-    GetAll("produit", setResult);
+    // GetAll("Versment", setResult);
+    getTableColumns("VersmentPlat", setResult);
     // Call the loadDatabase function
   }, []);
   const dbFile = `${FileSystem.documentDirectory}SQLite/tarek.db`;
@@ -182,7 +184,7 @@ const ExampleComponent = () => {
   console.log("Database location:", dbFile);
 
   return (
-    <View>
+    <View style={{ height: 600 }}>
       <Text>
         Check the console for database operations:: {JSON.stringify(result)}
       </Text>

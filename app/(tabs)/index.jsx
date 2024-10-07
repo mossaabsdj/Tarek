@@ -13,7 +13,7 @@ import Client from "@/app/Client/page";
 import * as SQLite from "expo-sqlite";
 import Produit from "@/app/Produit/page";
 //import Bdd from "@/app/Lib/Bdd";
-const db = SQLite.openDatabaseAsync("tarek.db");
+const db = SQLite.openDatabaseAsync("tarek1.db");
 export default function HomeScreen() {
   //creation des Table---------------------------
   async function CreatTable() {
@@ -164,7 +164,7 @@ export default function HomeScreen() {
       await (
         await db
       ).execAsync(`
-        CREATE TABLE IF NOT EXISTS VersmentPlat (
+        CREATE TABLE  VersmentPlat (
           VersmentPlat_ID INTEGER PRIMARY KEY AUTOINCREMENT,
           Facture_ID INTEGER,
           Plat INTEGER NOT NULL,
@@ -177,6 +177,7 @@ export default function HomeScreen() {
       console.error("Error creating 'VersmentPlat' table:", error);
     }
   };
+
   useEffect(() => {
     CreatTable();
     createEmployeeTable();

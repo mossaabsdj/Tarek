@@ -9,6 +9,8 @@ import {
   Modal,
   TouchableOpacity,
 } from "react-native";
+import { Picker } from "@react-native-picker/picker"; // Correctly import Picker
+
 import {
   GetAll,
   addProduit,
@@ -45,7 +47,7 @@ const ClientConsultation = () => {
   const [editProduit, setEditProduit] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [isEditing, setIsEditing] = useState(false); // New state for determining the modal type
-
+  const [selectedValue, setSelectedValue] = useState("true");
   const handleSearch = (query) => {
     setSearchQuery(query);
   };
@@ -68,13 +70,13 @@ const ClientConsultation = () => {
       editProduit.produitId,
       editProduit.Nom,
       editProduit.Prix,
-      editProduit.Return
+      selectedValue
     );
     updateProduit(
       editProduit.Produit_ID,
       editProduit.Nom,
       editProduit.Prix,
-      editProduit.Return
+      selectedValue
     );
     GetAll("produit", setProduit);
 
@@ -88,8 +90,9 @@ const ClientConsultation = () => {
   };
 
   const handleSaveNewProduit = () => {
-    console.log(editProduit);
-    const r = addProduit(editProduit.Nom, editProduit.Prix, editProduit.Return);
+    console.log(selectedValue);
+
+    const r = addProduit(editProduit.Nom, editProduit.Prix, selectedValue);
     console.log(r);
     GetAll("produit", setProduit);
 
@@ -149,14 +152,18 @@ const ClientConsultation = () => {
         }
         placeholder="السعر"
       />
-      <TextInput
-        style={styles.input}
-        value={editProduit?.Return}
-        onChangeText={(text) =>
-          setEditProduit({ ...editProduit, Return: text })
-        }
-        placeholder="النوع"
-      />
+      <View style={styles.picker}>
+        <Text style={styles.textpicker}>يتطلب الارجاع</Text>
+        <Picker
+          style={styles.p}
+          selectedValue={selectedValue}
+          onValueChange={(itemValue) => setSelectedValue(itemValue)}
+        >
+          <Picker.Item label="نعم" value="true" />
+          <Picker.Item label="لا" value="false" />
+        </Picker>
+      </View>
+
       <Button
         title={isEditing ? "حفظ" : "إضافة"}
         onPress={isEditing ? handleSaveChanges : handleSaveNewProduit}
@@ -273,6 +280,27 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: "white",
     textAlign: "center",
+  },
+  picker: {
+    flexDirection: "row", // Align text and picker horizontally
+    alignItems: "center", // Vertically align text and picker
+    padding: 10,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: "gray",
+  },
+  textpicker: {
+    fontSize: 18,
+    color: "#333",
+    marginRight: 10, // Adds space between the text and picker
+    textAlign: "right", // RTL support
+  },
+  p: {
+    borderWidth: 1,
+    borderColor: "red",
+    borderWidth: 1,
+    flex: 1, // Make the picker take up remaining space
+    height: 50,
   },
 });
 

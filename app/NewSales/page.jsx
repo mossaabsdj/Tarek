@@ -39,9 +39,7 @@ function Sales() {
   const [Versment_Money, setVersment_Money] = useState(false);
   const [paymentAmount, setpaymentAmount] = useState();
   const [rows, setRows] = useState([]);
-  const [selectedProductName, setSelectedProductName] = useState(
-    products[0].Nom
-  );
+  const [selectedProductName, setSelectedProductName] = useState();
   const [Facture_ID, setFacture_ID] = useState(1); // Use product name as value
   const [quantity, setQuantity] = useState("");
   const handleSubmit = () => {
@@ -90,17 +88,21 @@ function Sales() {
     }
   };
   const selecteClient = () => {
-    if (!selectedClient) {
-      setCurrentClient_ID(client[0].Client_ID);
-      setCurrentClient(client[0].Prenom);
-      setmodel(false);
-    }
-    if (selectedClient) {
-      const { Client_ID, Prenom } = selectedClient;
-      setCurrentClient_ID(Client_ID);
-      console.log("client_ID" + Client_ID);
-      setCurrentClient(Prenom);
-      setmodel(false);
+    if (!client[0]) {
+      Alert.alert("الرجاء ادخال زبون جديد");
+    } else {
+      if (!selectedClient) {
+        setCurrentClient_ID(client[0].Client_ID);
+        setCurrentClient(client[0].Prenom);
+        setmodel(false);
+      }
+      if (selectedClient) {
+        const { Client_ID, Prenom } = selectedClient;
+        setCurrentClient_ID(Client_ID);
+        console.log("client_ID" + Client_ID);
+        setCurrentClient(Prenom);
+        setmodel(false);
+      }
     }
   };
   const handelSave = async () => {
@@ -174,6 +176,7 @@ function Sales() {
     if (paymentAmount === "" || paymentAmount === 0) {
       console.log("nes pase add versment");
     } else {
+      console.log("paymentAmount" + paymentAmount);
       const ver = await addVersment(Facture_ID, paymentAmount);
       console.log(JSON.stringify(ver));
     }
@@ -187,11 +190,19 @@ function Sales() {
       GetAll("client", setclient);
     }
   }, [model]);
-  useEffect(() => {
+  async function GetProducts() {
     if (!model) {
-      GetAll("produit", setproduct);
-      setSelectedProductName(products[0].Nom);
+      var result = await GetAll("produit", setproduct);
+      if (!result[0]) {
+        Alert.alert("لايوجد منتج", " الرجاء اضافة منتج من القائمة=> المنتجات");
+      } else {
+        console.log("products[0].Nom" + JSON.stringify(result[0]));
+        setSelectedProductName(result[0].Nom);
+      }
     }
+  }
+  useEffect(() => {
+    GetProducts();
   }, [model]);
   useEffect(() => {
     if (!I18nManager.isRTL) {
@@ -316,12 +327,12 @@ function Sales() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.row}>
-          <Text style={styles.label}>المنتج</Text>
+        <View style={styles.rowfist}>
           <Picker
             selectedValue={selectedProductName}
             style={styles.picker}
             onValueChange={(itemValue) => setSelectedProductName(itemValue)}
+            itemStyle={styles.pickeritem}
           >
             {products.map((product) => (
               <Picker.Item
@@ -364,6 +375,15 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     color: "#333", // Darker color for better contrast
   },
+  rowfist: {
+    flexDirection: "row", // Align elements horizontally
+    alignItems: "center", // Vertically align elements
+    justifyContent: "space-between", // Space elements evenly
+    marginVertical: 10, // Add some vertical spacing
+    padding: 10,
+    backgroundColor: "#f5f5f5", // Background color for the row
+    borderRadius: 20, // Rounded corners for the row
+  },
   row: {
     flexDirection: "row",
     justifyContent: "space-between", // Distribute space between elements
@@ -372,17 +392,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10, // Add horizontal padding
   },
   label: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333", // Darker label color for contrast
-    marginRight: 10, // Space between label and input
+    flex: 1,
+    fontSize: 16,
+    textAlign: "center", // Align the label text in the center
+    marginRight: 10,
   },
   picker: {
-    flex: 1,
-    height: 40,
-    backgroundColor: "#f0f0f0", // Light background for the picker
+    flex: 3, // Let the picker take up more space
+    backgroundColor: "#f0f0f0",
     borderRadius: 5,
-    marginHorizontal: 10,
+    borderWidth: 1,
+    borderColor: "#000", // Black border for the picker
+    marginRight: 10, // Add space between picker and other elements
   },
   pickerm: {
     flex: 1,
@@ -481,6 +502,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "rgba(0, 0, 0, 0.5)", // Dark transparent background
   },
+  pickeritem: {},
 });
 
 export default Sales;

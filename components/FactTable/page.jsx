@@ -31,6 +31,7 @@ export default function SpanningTable({
   Facture_ID,
   client_name,
 }) {
+  const scrollViewRef = useRef();
   var NewThead = ["Sum", "Quantite", "Prix", "Nom"];
   const [rows, setRows] = useState(rowss);
   const [editCell, setEditCell] = useState({ rowIndex: null, colName: null });
@@ -44,6 +45,7 @@ export default function SpanningTable({
       return object;
     });
     setRows(updatedRows);
+    scrollToBottom();
   }, [rowss]);
   useEffect(() => {
     setfacture_id(Facture_ID);
@@ -87,7 +89,11 @@ export default function SpanningTable({
     const updatedRows = rows.filter((_, index) => index !== rowIndex);
     setRows(updatedRows);
   };
-
+  const scrollToBottom = () => {
+    if (scrollViewRef.current) {
+      scrollViewRef.current.scrollToEnd({ animated: true });
+    }
+  };
   const invoiceSubtotal = subtotal(rows);
   const print = async () => {
     try {
@@ -214,7 +220,7 @@ export default function SpanningTable({
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.table}>
+      <ScrollView style={styles.table} ref={scrollViewRef}>
         <View style={styles.head}>
           <Pressable onPress={() => Savefunction()}>
             <Text style={styles.details}>تأكيد</Text>
