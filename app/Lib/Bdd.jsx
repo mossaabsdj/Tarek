@@ -12,7 +12,7 @@ import {
   // Import other functions here...
 } from "@/app/Lib/bdd";
 // Open or create the database named 'tarek'
-const db = SQLite.openDatabaseAsync("tarek1.db");
+const db = SQLite.openDatabaseAsync("tarek4.db");
 
 const ExampleComponent = () => {
   const [result, setResult] = useState([]);

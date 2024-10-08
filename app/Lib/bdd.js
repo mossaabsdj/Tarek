@@ -2,7 +2,7 @@ import * as SQLite from "expo-sqlite";
 import * as FileSystem from "expo-file-system";
 import { Asset } from "expo-asset";
 // Open or create the database named 'tarek'
-const db = SQLite.openDatabaseAsync("tarek1.db");
+const db = SQLite.openDatabaseAsync("tarek4.db");
 
 //--GetAll------------------------------------------
 async function GetAll(TableName, f) {
@@ -489,6 +489,97 @@ const updateFactProd = async (
     console.error("Error updating FactProd entry:", error);
   }
 };
+const updateFactProdPlatDecrement = async (
+  factureId,
+  produitId,
+  decrementValue
+) => {
+  try {
+    // Check if the decrement value is valid
+    if (decrementValue <= 0) {
+      console.error("Error: 'decrementValue' must be greater than 0.");
+      return;
+    }
+
+    // Update the plat by decrementing it for the first matching entry
+    const r = await (
+      await db
+    ).runAsync(
+      `
+      UPDATE FactProd
+      SET Plat = Plat - ?
+      WHERE FactProd_ID = (
+        SELECT FactProd_ID
+        FROM FactProd
+        WHERE Facture_ID = ? AND Produit_ID = ? AND Plat >= ?
+        LIMIT 1
+      );
+    `,
+      decrementValue,
+      factureId,
+      produitId,
+      decrementValue // Ensuring we don't go below zero
+    );
+
+    // Check if any rows were changed
+    if (r.changes > 0) {
+      console.log("FactProd plat decremented successfully.");
+    } else {
+      console.log(
+        "No changes were made; either no matching entry found or Plat is too low."
+      );
+    }
+
+    return r; // Return the result for further use if needed
+  } catch (error) {
+    console.error("Error updating FactProd plat:", error);
+  }
+};
+
+const updateFactProdPlatIncrement = async (
+  factureId,
+  produitId,
+  incrementValue
+) => {
+  try {
+    // Check if the increment value is valid
+    if (incrementValue <= 0) {
+      console.error("Error: 'incrementValue' must be greater than 0.");
+      return;
+    }
+
+    // Update the plat by incrementing it for the first matching entry
+    const r = await (
+      await db
+    ).runAsync(
+      `
+      UPDATE FactProd
+      SET Plat = Plat + ?
+      WHERE FactProd_ID = (
+        SELECT FactProd_ID
+        FROM FactProd
+        WHERE Facture_ID = ? AND Produit_ID = ?
+        LIMIT 1
+      );
+    `,
+      incrementValue,
+      factureId,
+      produitId
+    );
+
+    // Check if any rows were changed
+    if (r.changes > 0) {
+      console.log("FactProd plat incremented successfully.");
+    } else {
+      console.log("No changes were made; no matching entry found.");
+    }
+
+    return r; // Return the result for further use if needed
+  } catch (error) {
+    console.error("Error updating FactProd plat:", error);
+  }
+};
+
 const deleteFactProd = async (factProdId) => {
   try {
     await (
@@ -616,29 +707,52 @@ const deleteCreditEmployee = async (creditId) => {
 };
 //---------------------------------------------------------
 //--VersmentPlat ------------------------------------------------------
-const addVersmentPlat = async (Facture_ID, Plat) => {
+//--VersmentPlat ------------------------------------------------------
+const addVersmentPlat = async (Facture_ID, Produit_ID, Plat) => {
+  if (Plat == null) {
+    console.error("Error: 'Plat' cannot be null or undefined.");
+    return;
+  }
+  if (Facture_ID == null) {
+    console.error("Error: 'Facture_ID' cannot be null or undefined.");
+    return;
+  }
+  if (Produit_ID == null) {
+    console.error("Error: 'Produit_ID' cannot be null or undefined.");
+    return;
+  }
+
   try {
     await (
       await db
     ).execAsync(`
-      INSERT INTO VersmentPlat (Facture_ID, Plat)
-      VALUES (${Facture_ID}, ${Plat});
+      INSERT INTO VersmentPlat (Facture_ID, Produit_ID, Plat)
+      VALUES (${Facture_ID}, ${Produit_ID}, ${Plat});
     `);
     console.log("VersmentPlat entry added successfully.");
   } catch (error) {
-    console.error("Error adding VersmentPlat entry:", error);
+    console.error("Error adding VersmentPlat entry:", error.message);
+    console.error("Stack Trace:", error.stack);
   }
 };
 
-const updateVersmentPlat = async (VersmentPlat_ID, Facture_ID, Plat) => {
+const updateVersmentPlat = async (
+  VersmentPlat_ID,
+  Facture_ID,
+  Produit_ID,
+  Plat
+) => {
   try {
     await (
       await db
-    ).execAsync(`
+    ).execAsync(
+      `
       UPDATE VersmentPlat
-      SET Facture_ID = ${Facture_ID}, Plat = ${Plat}
-      WHERE VersmentPlat_ID = ${VersmentPlat_ID};
-    `);
+      SET Facture_ID = ?, Produit_ID = ?, Plat = ?
+      WHERE VersmentPlat_ID = ?;
+      `,
+      [Facture_ID, Produit_ID, Plat, VersmentPlat_ID]
+    );
     console.log("VersmentPlat entry updated successfully.");
   } catch (error) {
     console.error("Error updating VersmentPlat entry:", error);
@@ -649,10 +763,15 @@ const deleteVersmentPlat = async (VersmentPlat_ID) => {
   try {
     await (
       await db
-    ).execAsync(`
+    ).execAsync(
+      `
       DELETE FROM VersmentPlat
-      WHERE VersmentPlat_ID = ${VersmentPlat_ID};
-    `);
+      WHERE VersmentPlat_ID = $VersmentPlat_ID;
+      `,
+      {
+        $VersmentPlat_ID: VersmentPlat_ID, // Pass parameters as an object
+      }
+    );
     console.log("VersmentPlat entry deleted successfully.");
   } catch (error) {
     console.error("Error deleting VersmentPlat entry:", error);
@@ -711,4 +830,6 @@ module.exports = {
   GetFacturesVersment,
   GetFacturesVersmentPlat,
   updateFactureValiderPlat,
+  updateFactProdPlatIncrement,
+  updateFactProdPlatDecrement,
 };

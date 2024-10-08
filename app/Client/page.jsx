@@ -14,9 +14,12 @@ import {
   updateClient,
   updateFactureValiderMoney,
   updateFactureValiderPlat,
+  updateFactProdPlatDecrement,
+  updateFactProdPlatIncrement,
 } from "@/app/Lib/bdd";
 import React, { useEffect, useState } from "react";
 import {
+  Alert,
   Button,
   FlatList,
   Modal,
@@ -26,6 +29,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Picker } from "@react-native-picker/picker"; // Correctly import Picker
+import { useStoreRootState } from "expo-router/build/global-state/router-store";
+
 // Column names
 const columns = [
   { key: "Nom", label: "اللقب" },
@@ -98,6 +104,11 @@ const initialFactures_Plat = [
 const ClientConsultation = () => {
   const [Versment, setVersment] = useState([]);
   const [VersmentPlat, setVersmentPlat] = useState([]);
+  const [produit, setproduit] = useState([
+    { Nom: "قلب اللوز 60/80", Prix: 25, Produit_ID: 1, Return: "true" },
+    { Nom: "قلب اللوز 50/30", Prix: 30, Produit_ID: 2, Return: "true" },
+  ]);
+  const [selectedProduct, setSelectedProduct] = useState(produit[0].Produit_ID);
 
   const [facturesplat, setFacturesplat] = useState(initialFactures);
   const [factures, setFactures] = useState(initialFactures);
@@ -201,12 +212,38 @@ const ClientConsultation = () => {
     // VersmentFacture();
   };
   const handelAddVersmentPlat = async () => {
-    console.log(selectedFacture, NbrPlat);
-    addVersmentPlat(selectedFacture, NbrPlat);
-    setVersment_Plat(false);
+    console.log(produit, selectedFacture, selectedProduct, NbrPlat);
+    const r = await updateFactProdPlatDecrement(
+      selectedFacture,
+      selectedProduct,
+      NbrPlat
+    );
+    console.log(JSON.stringify(r));
+    if (r.changes > 0) {
+      await addVersmentPlat(selectedFacture, selectedProduct, NbrPlat);
+      setVersment_Plat(false);
+    } else {
+      Alert.alert("لقد  ارجعت عدد اكبر من الدين");
+    }
     // VersmentFacturePlat();
     handlePlatCredit(editClient);
   };
+  async function DeleteVersment_Plat(versmentPlat) {
+    console.log(
+      versmentPlat.Facture_ID,
+      versmentPlat.Produit_ID,
+      versmentPlat.Plat,
+      versmentPlat.VersmentPlat_ID
+    );
+    await updateFactProdPlatIncrement(
+      versmentPlat.Facture_ID,
+      versmentPlat.Produit_ID,
+      versmentPlat.Plat
+    );
+    await deleteVersmentPlat(1);
+    await updateFactureValiderPlat(versmentPlat.Facture_ID, 0);
+    await VersmentFacturePlat();
+  }
   async function VersmentFacture() {
     const r = await GetFacturesVersment(selectedFacture);
     console.log(r);
@@ -214,7 +251,9 @@ const ClientConsultation = () => {
   }
   async function VersmentFacturePlat() {
     const r = await GetFacturesVersmentPlat(selectedFacture);
-    console.log(r);
+    //console.log("xxxxxxxx" + JSON.stringify(r));
+
+    console.log("xxxxx" + JSON.stringify(r));
     setVersmentPlat(r);
   }
   const DeleteVersment = async (versment) => {
@@ -274,28 +313,42 @@ const ClientConsultation = () => {
       </View>
     </View>
   );
+  async function GetProduitNom(id) {
+    const r = await getProduiNomby_ID(id);
+    var nom = "";
+    if (r.Nom) {
+      nom = r.Nom;
+    }
 
+    return nom;
+  }
   const renderVersmentPlat = ({ item: versmentPlat }) => (
     <View style={styles.versmentContainer}>
       <Text style={styles.title}>تفاصيل الدفع</Text>
       <View key={versmentPlat.VersmentPlat_ID} style={styles.versmentItem}>
         <Text style={styles.label}>
-          تاريخ الدفع:
+          تاريخ الارجاع:
           <Text style={styles.value}>{formatDate(versmentPlat.Date)}</Text>
         </Text>
         <Text style={styles.label}>
-          مبلغ الدفع: <Text style={styles.value}>{versmentPlat.Plat}</Text>
+          عدد الاطباق:
+          <Text style={styles.value}>{versmentPlat.Plat}</Text>
+        </Text>
+        <Text style={styles.label}>
+          نوع الطبق:
+          <Text style={styles.value}>{versmentPlat.Produit_ID}</Text>
         </Text>
         {/* Button to delete payment */}
         <TouchableOpacity
           style={styles.deleteButton}
-          onPress={() => DeleteVersmentPlat(versmentPlat)}
+          onPress={() => DeleteVersment_Plat(versmentPlat)}
         >
           <Text style={styles.deleteButtonText}>حدف الدفع</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
+
   const renderFactureItem = ({ item }) => (
     <View style={styles.card}>
       <Text style={styles.label}>
@@ -400,10 +453,10 @@ const ClientConsultation = () => {
       for (let Fact of Factures) {
         if (Fact) {
           const versment = await GetFacturesVersment(Fact.Facture_ID);
-          console.log("versment" + JSON.stringify(versment));
+          // console.log("versment" + JSON.stringify(versment));
           if (versment) {
             for (let ver of versment) {
-              console.log();
+              //  console.log();
               Arrayversment.push(ver.Somme);
             }
             var factversment = Arrayversment.reduce(
@@ -411,10 +464,10 @@ const ClientConsultation = () => {
               0
             );
             if (factversment < Fact.Montant_Total) {
-              console.log(factversment + "===" + Fact.Montant_Total);
+              //console.log(factversment + "===" + Fact.Montant_Total);
               creditMoney = creditMoney + (Fact.Montant_Total - factversment);
             }
-            console.log("creditMoney" + creditMoney);
+            // console.log("creditMoney" + creditMoney);
           }
         }
       }
@@ -481,32 +534,41 @@ const ClientConsultation = () => {
   }
   const handlePlatCredit = async (client) => {
     const factures = await GetClient_FacturesPlat(client.Client_ID);
-    console.log(factures);
+    // console.log(factures);
 
     setFacturesplat(factures);
     for (let Fact of factures) {
-      var RestFacture = 0;
-      var Arrayversment = [];
-      const versment = await GetFacturesVersmentPlat(Fact.Facture_ID);
-      if (versment) {
-        for (let ver of versment) {
-          var somme = parseInt(ver.Plat, 10);
-          if (ver.Plat === "") {
-            somme = 0;
+      var CreditPlat = [];
+      var creditOmbalagee = "";
+      if (Fact) {
+        const FactProds = await GetFactures_Factprod(Fact.Facture_ID);
+        for (let fp of FactProds) {
+          var nom = await getProduiNomby_ID(fp.Produit_ID);
+          if (nom) {
+            var object = { Produit: nom.Nom, Plat: fp.Plat };
+            const existingProduct = CreditPlat.find(
+              (item) => item.Produit === nom.Nom
+            ); // Check if the product exists
+            if (existingProduct) {
+              existingProduct.Plat += fp.Plat;
+            } else {
+              CreditPlat.push(object);
+            }
           }
+        }
 
-          Arrayversment.push(somme);
-        }
-        var factversment = Arrayversment.reduce(
-          (total, item) => total + item,
-          0
-        );
-        console.log("Fact.plat" + Fact.Plat);
-        if (factversment < Fact.Plat) {
-          RestFacture = Fact.Plat - factversment;
-        } else if (factversment === Fact.Plat || factversment > Fact.Plat) {
-          const r = await updateFactureValiderPlat(Fact.Facture_ID, 1);
-        }
+        CreditPlat.map((cp, i) => {
+          if (i === 0) {
+          } else {
+            creditOmbalagee = creditOmbalagee + "و";
+          }
+          creditOmbalagee =
+            creditOmbalagee + cp.Plat + ":" + "{" + cp.Produit + "}  ";
+        });
+      }
+
+      if (creditOmbalagee === "") {
+        const r = await updateFactureValiderPlat(Fact.Facture_ID, 1);
       }
       setFacturesplat((prevFactures) =>
         prevFactures.map(
@@ -514,7 +576,7 @@ const ClientConsultation = () => {
             cl.Facture_ID === Fact.Facture_ID
               ? {
                   ...cl,
-                  reste: RestFacture,
+                  reste: creditOmbalagee,
                 } // Update creditOmbalage for the selected client
               : cl // Keep other clients unchanged
         )
@@ -532,6 +594,14 @@ const ClientConsultation = () => {
   };
 
   useEffect(() => {
+    if (Versment_Plat) {
+      GetAll("produit", setproduit);
+      //  console.log("selectedFacture" + selectedFacture);
+      VersmentFacturePlat();
+    }
+  }, [Versment_Plat]);
+
+  useEffect(() => {
     if (Versment_Money) {
       VersmentFacture();
     }
@@ -539,16 +609,14 @@ const ClientConsultation = () => {
       GetFacturesMoney(editClient);
     }
   }, [Versment_Money]);
-  useEffect(() => {
-    GetTotalCreditPlat();
-  }, []);
+
   useEffect(() => {
     if (!MoneyCredit) {
       GetTotalCreditMoney();
-      GetTotalCreditPlat();
+      // GetTotalCreditPlat();
     }
     if (!PlatCredit) {
-      GetTotalCreditMoney();
+      //GetTotalCreditMoney();
       GetTotalCreditPlat();
     }
   }, [MoneyCredit, PlatCredit]);
@@ -802,7 +870,20 @@ const ClientConsultation = () => {
               <Text style={styles.modalTitle}>
                 ارجاع للفاتورة ذات الرقم:{selectedFacture}
               </Text>
-
+              <Picker
+                selectedValue={selectedProduct}
+                style={styles.picker}
+                onValueChange={(itemValue) => setSelectedProduct(itemValue)}
+                itemStyle={styles.pickeritem}
+              >
+                {produit.map((product) => (
+                  <Picker.Item
+                    key={product.Nom}
+                    label={product.Nom}
+                    value={product.Produit_ID} // Use product name as value
+                  />
+                ))}
+              </Picker>
               <TextInput
                 style={styles.inputv}
                 keyboardType="numeric"
@@ -816,7 +897,7 @@ const ClientConsultation = () => {
               <FlatList
                 data={VersmentPlat}
                 renderItem={renderVersmentPlat}
-                keyExtractor={(item) => item.Versment_ID}
+                keyExtractor={(item) => item.VersmentPlat_ID}
               />
             </View>
           </View>

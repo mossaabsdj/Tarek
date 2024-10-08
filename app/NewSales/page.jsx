@@ -51,24 +51,40 @@ function Sales() {
 
   const handleAdd = () => {
     // Find the selected product by its name
-
     const selectedProduct = products.find(
       (product) => product.Nom === selectedProductName
     );
 
-    // Clone the product and add quantity
-    console.log(quantity + selectedProductName);
+    console.log(quantity + selectedProductName); // Debugging log
+
     if (!selectedProductName) {
-      Alert.alert("", "الرجاء إختيار منتج");
-    } else {
-      if (quantity === "0" || quantity === "") {
-        Alert.alert("", "الرجاء إدخال الكمية");
-      } else {
-        const selected = { ...selectedProduct, Quantite: quantity };
-        setRows((prevRows) => [...prevRows, selected]); // Add new row to the existing array
-      }
+      Alert.alert("", "الرجاء إختيار منتج"); // Alert for no product selected
+      return; // Exit function early
     }
+
+    if (quantity === "0" || quantity === "") {
+      Alert.alert("", "الرجاء إدخال الكمية"); // Alert for empty or zero quantity
+      return; // Exit function early
+    }
+
+    // Check if the product already exists in the rows
+    const existingProductIndex = rows.findIndex(
+      (item) => item.Nom === selectedProductName
+    );
+
+    if (existingProductIndex !== -1) {
+      // If the product exists, update the quantity
+      const updatedRows = [...rows]; // Create a shallow copy of rows
+      updatedRows[existingProductIndex].Quantite += Number(quantity); // Increment the quantity (ensure quantity is a number)
+      setRows(updatedRows); // Update state with the new rows
+    } else {
+      // If the product does not exist, create a new entry
+      const selected = { ...selectedProduct, Quantite: Number(quantity) }; // Ensure quantity is a number
+      setRows((prevRows) => [...prevRows, selected]); // Add new row to the existing array
+    }
+    console.log(rows);
   };
+
   const deleteRow = (rowIndex) => {
     const updatedRows = rows.filter((_, index) => index !== rowIndex);
     setRows(updatedRows);
@@ -120,6 +136,7 @@ function Sales() {
     var valider_Money = true;
     var valider_Plat = true;
     for (let r of rows) {
+      console.log(rows);
       console.log(r.Nom);
       const Statu = await getProduitStatusByNom(r.Nom, setStatus);
       console.log("return this ===" + JSON.stringify(Statu.Return));

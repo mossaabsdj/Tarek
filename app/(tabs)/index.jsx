@@ -13,7 +13,7 @@ import Client from "@/app/Client/page";
 import * as SQLite from "expo-sqlite";
 import Produit from "@/app/Produit/page";
 //import Bdd from "@/app/Lib/Bdd";
-const db = SQLite.openDatabaseAsync("tarek1.db");
+const db = SQLite.openDatabaseAsync("tarek4.db");
 export default function HomeScreen() {
   //creation des Table---------------------------
   async function CreatTable() {
@@ -164,20 +164,29 @@ export default function HomeScreen() {
       await (
         await db
       ).execAsync(`
-        CREATE TABLE  VersmentPlat (
-          VersmentPlat_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-          Facture_ID INTEGER,
-          Plat INTEGER NOT NULL,
-          Date DATE DEFAULT (datetime('now', 'localtime')),
-          FOREIGN KEY (Facture_ID) REFERENCES facture(Facture_ID) ON DELETE CASCADE
-        );
-      `);
+      CREATE TABLE IF NOT EXISTS VersmentPlat (
+        VersmentPlat_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+        Facture_ID INTEGER,
+        Produit_ID INTEGER,
+        Plat INTEGER NOT NULL,
+        Date DATE DEFAULT (datetime('now', 'localtime')),
+        FOREIGN KEY (Facture_ID) REFERENCES facture(Facture_ID) ON DELETE CASCADE,
+        FOREIGN KEY (Produit_ID) REFERENCES produit(Produit_ID) ON DELETE CASCADE
+      );
+    `);
       console.log("Table 'VersmentPlat' created successfully.");
     } catch (error) {
       console.error("Error creating 'VersmentPlat' table:", error);
     }
   };
-
+  async function GetAll(TableName) {
+    const queryResult = await (
+      await db
+    ).getAllAsync("SELECT * FROM " + TableName + ";");
+    console.log("Query Result:", queryResult);
+    return queryResult;
+    // Process the results to extract data
+  }
   useEffect(() => {
     CreatTable();
     createEmployeeTable();
@@ -187,6 +196,8 @@ export default function HomeScreen() {
     createVersmentTable();
     createCreditEmployeeTable();
     createVersmentPlatTable();
+    // const r = GetAll("produit");
+    // console.log("ssssss" + JSON.stringify(r));
     //alterFactureTable();
     if (!I18nManager.isRTL) {
       I18nManager.forceRTL(true);
