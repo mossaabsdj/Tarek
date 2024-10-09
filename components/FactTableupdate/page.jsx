@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
 
     borderWidth: 1,
     boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)", // Use boxShadow for shadow effects
-    height: 500,
+    height: 345,
   },
   head: {
     backgroundColor: "dodgerblue",

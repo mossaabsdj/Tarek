@@ -18,6 +18,7 @@ import Client from "@/app/Client/page";
 import Produit from "@/app/Produit/page";
 import WelcomPage from "@/components/WelcomPage/page";
 import Enployee from "@/app/Employe/page";
+import Facture from "@/app/Factures/page";
 const { width: screenWidth } = Dimensions.get("window");
 
 const SliderMenu = () => {
@@ -185,6 +186,7 @@ const SliderMenu = () => {
         {SalesPage && <Sales />}
         {ClientPage && <Client />}
         {ProduitPage && <Produit />}
+        {FacturesPage && <Facture />}
         {EnployeePage && <Enployee />}
       </View>
     </View>

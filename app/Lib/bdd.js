@@ -2,8 +2,270 @@ import * as SQLite from "expo-sqlite";
 import * as FileSystem from "expo-file-system";
 import { Asset } from "expo-asset";
 // Open or create the database named 'tarek'
-const db = SQLite.openDatabaseAsync("tarek4.db");
+const db = SQLite.openDatabaseAsync("tarek10.db");
 
+async function creatAll(params) {
+  try {
+    const dbInstance = await db;
+
+    // Set journal mode to WAL before any transaction or table creation
+    await dbInstance.execAsync(`PRAGMA journal_mode = WAL;`);
+    console.log("Journal mode set to WAL.");
+
+    // Await each table creation function to ensure they execute in sequence
+    await CreatTable();
+    await createEmployeeTable();
+    await createClientTable();
+    await createFactureTable();
+    await createFactProdTable();
+    await createVersmentTable();
+    await createCreditEmployeeTable();
+    await createVersmentPlatTable();
+
+    console.log("All tables created successfully.");
+  } catch (error) {
+    console.error("Error during database initialization:", error);
+  }
+}
+
+//creation des Table---------------------------
+async function CreatTableapp() {
+  try {
+    const dbInstance = await db;
+
+    // Set journal mode to WAL before creating the table
+    await dbInstance.execAsync(`PRAGMA journal_mode = WAL;`);
+    console.log("Journal mode set to WAL.");
+
+    // Create the table if it does not exist
+    await dbInstance.execAsync(`
+      CREATE TABLE IF NOT EXISTS app (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        code TEXT NOT NULL,
+        statu BOOLEAN NOT NULL
+      );
+    `);
+    console.log("Table 'app' created successfully.");
+  } catch (error) {
+    console.error("Error creating 'app' table:", error);
+  }
+}
+
+async function insertRow(code, statu) {
+  try {
+    await (
+      await db
+    ).runAsync(`INSERT INTO app (code, statu) VALUES (?, ?);`, [code, statu]);
+    console.log(
+      `Row with code: ${code} and statu: ${statu} added successfully.`
+    );
+  } catch (error) {
+    console.error("Error inserting row:", error);
+  }
+}
+async function getFirstRow() {
+  try {
+    const firstRow = await (await db).getFirstAsync(`SELECT * FROM app ;`);
+    if (firstRow) {
+      console.log("First row:", firstRow);
+    } else {
+      console.log("No rows found in the 'app' table.");
+    }
+    return firstRow;
+  } catch (error) {
+    console.error("Error fetching the first row:", error);
+  }
+}
+async function updateApp(id, statu) {
+  try {
+    const dbInstance = await db;
+
+    // Start a transaction
+    // await dbInstance.execAsync("BEGIN TRANSACTION;");
+
+    // Update the entry with the given id
+    const result = await dbInstance.runAsync(
+      `UPDATE app SET statu = ? WHERE id = ?`,
+      [statu, id]
+    );
+
+    // Commit the transaction if update was successful
+    // await dbInstance.execAsync("COMMIT;");
+
+    console.log(`App entry with ID ${id} updated successfully.`);
+
+    return result;
+  } catch (error) {
+    console.error("Error updating app entry:", error);
+
+    // Rollback the transaction in case of an error
+    // await (await db).execAsync("ROLLBACK;");
+  }
+}
+
+async function CreatTable() {
+  // Create the table if it does not exist
+  await (
+    await db
+  ).execAsync(`
+        CREATE TABLE IF NOT EXISTS produit (
+          Produit_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+          Nom TEXT NOT NULL,
+          Prix REAL NOT NULL,
+          Return BOOLEAN NOT NULL
+        );
+      `);
+  console.log("Table 'produit' created successfully.");
+}
+const createEmployeeTable = async () => {
+  try {
+    await (
+      await db
+    ).execAsync(`
+        CREATE TABLE IF NOT EXISTS Employee (
+          Employee_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+          Nom TEXT NOT NULL,
+          Prenom TEXT NOT NULL,
+          Num TEXT NOT NULL,
+          Salery_Date TEXT NOT NULL
+        );
+      `);
+    console.log("Table 'Employee' created successfully.");
+  } catch (error) {
+    console.error("Error creating 'Employee' table:", error);
+  }
+};
+const createClientTable = async () => {
+  try {
+    await (
+      await db
+    ).execAsync(`
+        CREATE TABLE IF NOT EXISTS Client (
+          Client_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+          Nom TEXT NOT NULL,
+          Prenom TEXT NOT NULL,
+          Num TEXT NOT NULL,
+          Date DATE DEFAULT (datetime('now', 'localtime'))
+        );
+      `);
+    console.log("Table 'Client' created successfully.");
+  } catch (error) {
+    console.error("Error creating 'Client' table:", error);
+  }
+};
+const createFactureTable = async () => {
+  try {
+    await (
+      await db
+    ).execAsync(`
+        CREATE TABLE IF NOT EXISTS facture (
+          Facture_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+          Client_ID INTEGER,
+          Montant_Total REAL NOT NULL,
+          Date_Creat DATE DEFAULT (datetime('now', 'localtime')),
+          ValiderMoney BOOLEAN NOT NULL DEFAULT 0,
+          ValiderPlat BOOLEAN NOT NULL DEFAULT 0,
+          Plat INTEGER,
+          FOREIGN KEY (Client_ID) REFERENCES Client(Client_ID) ON DELETE CASCADE
+        );
+      `);
+    console.log("Table 'facture' created successfully.");
+  } catch (error) {
+    console.error("Error creating 'facture' table:", error);
+  }
+};
+const alterFactureTable = async () => {
+  try {
+    await (
+      await db
+    ).execAsync(`
+      ALTER TABLE facture ADD COLUMN ValiderMoney BOOLEAN NOT NULL DEFAULT 0;
+      ALTER TABLE facture ADD COLUMN ValiderPlat BOOLEAN NOT NULL DEFAULT 0;
+      ALTER TABLE facture ADD COLUMN Plat INTEGER;
+    `);
+    console.log("Columns added to 'facture' table successfully.");
+  } catch (error) {
+    console.error("Error altering 'facture' table:", error);
+  }
+};
+
+const createFactProdTable = async () => {
+  try {
+    await (
+      await db
+    ).execAsync(`
+        CREATE TABLE IF NOT EXISTS FactProd (
+          FactProd_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+          Facture_ID INTEGER,
+          Produit_ID INTEGER,
+          Quantite INTEGER NOT NULL,
+          PrixVente REAL NOT NULL,
+          Plat INTEGER NOT NULL,
+          FOREIGN KEY (Facture_ID) REFERENCES facture(Facture_ID) ON DELETE CASCADE,
+          FOREIGN KEY (Produit_ID) REFERENCES produit(Produit_ID) ON DELETE CASCADE
+        );
+      `);
+    console.log("Table 'FactProd' created successfully.");
+  } catch (error) {
+    console.error("Error creating 'FactProd' table:", error);
+  }
+};
+const createVersmentTable = async () => {
+  try {
+    await (
+      await db
+    ).execAsync(`
+        CREATE TABLE IF NOT EXISTS Versment (
+          Versment_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+          Facture_ID INTEGER,
+          Somme REAL NOT NULL,
+          Date DATE DEFAULT (datetime('now', 'localtime')),
+          FOREIGN KEY (Facture_ID) REFERENCES facture(Facture_ID) ON DELETE CASCADE
+        );
+      `);
+    console.log("Table 'Versment' created successfully.");
+  } catch (error) {
+    console.error("Error creating 'Versment' table:", error);
+  }
+};
+const createCreditEmployeeTable = async () => {
+  try {
+    await (
+      await db
+    ).execAsync(`
+        CREATE TABLE IF NOT EXISTS Credit_Employee (
+          Credit_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+          Employee_ID INTEGER,
+          Somme REAL NOT NULL,
+          Date DATE DEFAULT (datetime('now', 'localtime')),
+          FOREIGN KEY (Employee_ID) REFERENCES Employee(Employee_ID) ON DELETE CASCADE
+        );
+      `);
+    console.log("Table 'Credit_Employee' created successfully.");
+  } catch (error) {
+    console.error("Error creating 'Credit_Employee' table:", error);
+  }
+};
+const createVersmentPlatTable = async () => {
+  try {
+    await (
+      await db
+    ).execAsync(`
+      CREATE TABLE IF NOT EXISTS VersmentPlat (
+        VersmentPlat_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+        Facture_ID INTEGER,
+        Produit_ID INTEGER,
+        Plat INTEGER NOT NULL,
+        Date DATE DEFAULT (datetime('now', 'localtime')),
+        FOREIGN KEY (Facture_ID) REFERENCES facture(Facture_ID) ON DELETE CASCADE,
+        FOREIGN KEY (Produit_ID) REFERENCES produit(Produit_ID) ON DELETE CASCADE
+      );
+    `);
+    console.log("Table 'VersmentPlat' created successfully.");
+  } catch (error) {
+    console.error("Error creating 'VersmentPlat' table:", error);
+  }
+};
 //--GetAll------------------------------------------
 async function GetAll(TableName, f) {
   const queryResult = await (
@@ -107,17 +369,24 @@ async function GetFacturesVersment(id) {
 }
 async function GetFacturesVersmentPlat(id) {
   try {
-    // Prepare the SQL statement
+    // Prepare the SQL statement with JOIN to fetch the product name
     const statement = await (
       await db
-    ).prepareAsync("SELECT * FROM VersmentPlat WHERE Facture_ID = $id ");
+    ).prepareAsync(`
+      SELECT vp.*, p.nom 
+      FROM VersmentPlat vp
+      JOIN produit p ON vp.Produit_ID = p.Produit_ID
+      WHERE vp.Facture_ID = $id
+    `);
 
-    // Execute the statement with the product name
+    // Execute the statement with the given id
     const result = await statement.executeAsync({ $id: id });
-    const r = result.getAllAsync();
-    return r;
+    const versmentPlatArray = await result.getAllAsync(); // Get all results
+
     // Finalize the statement to release resources
-    await statement.finalize();
+    //  await statement.finalizeAsync();
+
+    return versmentPlatArray; // Return the modified result with 'nom'
   } catch (error) {
     console.error("Error fetching product status:", error);
   }
@@ -140,6 +409,56 @@ async function GetFactures_Factprod(id) {
     await statement.finalize();
   } catch (error) {
     console.error("Error fetching product status:", error);
+  }
+}
+async function Get_ALL_Factures_Factprod(id) {
+  try {
+    // Prepare the SQL statement with JOIN to fetch the product name
+    const statement = await (
+      await db
+    ).prepareAsync(`
+      SELECT fp.*, p.Nom AS Nom, fp.PrixVente AS Prix
+      FROM FactProd fp
+      JOIN Produit p ON fp.Produit_ID = p.Produit_ID 
+      WHERE fp.Facture_ID = $id
+    `);
+
+    // Execute the statement with the provided id
+    const result = await statement.executeAsync({ $id: id });
+    const r = await result.getAllAsync(); // Get all results
+
+    // Finalize the statement to release resources
+    // await statement.finalize();
+
+    return r; // Return the result
+  } catch (error) {
+    console.error("Error fetching product status:", error);
+    return null; // Return null or handle error as needed
+  }
+}
+
+async function GetFacturesWithClientName() {
+  try {
+    // Prepare the SQL statement with JOIN to fetch client name
+    const statement = await (
+      await db
+    ).prepareAsync(`
+      SELECT f.*, c.nom AS client_nom 
+      FROM Facture f
+      JOIN client c ON f.Client_ID = c.Client_ID
+      
+    `);
+
+    // Execute the statement with the given factureId
+    const result = await statement.executeAsync();
+    const facturesArray = await result.getAllAsync(); // Get all results
+    console.log("facturesArray" + facturesArray);
+    // Finalize the statement to release resources
+    // await statement.finalizeAsync();
+
+    return facturesArray; // Return the results with 'client_nom'
+  } catch (error) {
+    console.error("Error fetching facture with client name:", error);
   }
 }
 
@@ -759,29 +1078,33 @@ const updateVersmentPlat = async (
   }
 };
 
-const deleteVersmentPlat = async (VersmentPlat_ID) => {
+const deleteVersmentPlat2 = async (VersmentPlat_ID) => {
+  console.log("Deleting VersmentPlat entry with ID:", VersmentPlat_ID);
   try {
-    await (
-      await db
-    ).execAsync(
+    const dbInstance = await db; // Ensure the database connection is ready
+    const result = await dbInstance.runAsync(
       `
       DELETE FROM VersmentPlat
-      WHERE VersmentPlat_ID = $VersmentPlat_ID;
+      WHERE VersmentPlat_ID = ?;
       `,
-      {
-        $VersmentPlat_ID: VersmentPlat_ID, // Pass parameters as an object
-      }
+      [VersmentPlat_ID] // Use '?' as a placeholder for the VersmentPlat_ID
     );
-    console.log("VersmentPlat entry deleted successfully.");
+    if (result.changes > 0) {
+      console.log(
+        "VersmentPlat entry deleted successfully." + JSON.stringify(result)
+      );
+    } else {
+      console.log("No entry found with the given VersmentPlat_ID.");
+    }
   } catch (error) {
-    console.error("Error deleting VersmentPlat entry:", error);
+    console.error("Error deleting Versmentlat entry:", error);
   }
 };
 
 //--------------------------------------------------------------
 module.exports = {
   GetAll,
-  // produit table methods
+  // produt table methods
   addProduit,
   updateProduit,
   deleteProduit,
@@ -820,7 +1143,7 @@ module.exports = {
   // VersmentPlat table methods
   addVersmentPlat,
   updateVersmentPlat,
-  deleteVersmentPlat,
+  deleteVersmentPlat2,
   //-----
   getProduitStatusByNom,
   GetClient_FacturesPlat,
@@ -832,4 +1155,19 @@ module.exports = {
   updateFactureValiderPlat,
   updateFactProdPlatIncrement,
   updateFactProdPlatDecrement,
+  CreatTable,
+  createEmployeeTable,
+  createClientTable,
+  createFactureTable,
+  createFactProdTable,
+  createVersmentTable,
+  createCreditEmployeeTable,
+  createVersmentPlatTable,
+  CreatTableapp,
+  insertRow,
+  getFirstRow,
+  updateApp,
+  creatAll,
+  GetFacturesWithClientName,
+  Get_ALL_Factures_Factprod,
 };

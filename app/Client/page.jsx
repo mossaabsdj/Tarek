@@ -3,7 +3,7 @@ import {
   addVersmentPlat,
   deleteClient,
   deleteVersment,
-  deleteVersmentPlat,
+  deleteVersmentPlat2,
   GetAll,
   GetClient_FacturesMoney,
   GetClient_FacturesPlat,
@@ -240,7 +240,7 @@ const ClientConsultation = () => {
       versmentPlat.Produit_ID,
       versmentPlat.Plat
     );
-    await deleteVersmentPlat(1);
+    await deleteVersmentPlat2(versmentPlat.VersmentPlat_ID);
     await updateFactureValiderPlat(versmentPlat.Facture_ID, 0);
     await VersmentFacturePlat();
   }
@@ -251,9 +251,7 @@ const ClientConsultation = () => {
   }
   async function VersmentFacturePlat() {
     const r = await GetFacturesVersmentPlat(selectedFacture);
-    //console.log("xxxxxxxx" + JSON.stringify(r));
 
-    console.log("xxxxx" + JSON.stringify(r));
     setVersmentPlat(r);
   }
   const DeleteVersment = async (versment) => {
@@ -266,7 +264,7 @@ const ClientConsultation = () => {
     <View style={styles.card}>
       <Text style={styles.title}>معلومات الزبون</Text>
       {columns.map((column) => (
-        <Text style={styles.label} key={item.Client_ID + column.key}>
+        <Text style={styles.label} key={column.key}>
           {column.label}: <Text style={styles.value}>{item[column.key]}</Text>
         </Text>
       ))}
@@ -336,7 +334,7 @@ const ClientConsultation = () => {
         </Text>
         <Text style={styles.label}>
           نوع الطبق:
-          <Text style={styles.value}>{versmentPlat.Produit_ID}</Text>
+          <Text style={styles.value}>{versmentPlat.Nom}</Text>
         </Text>
         {/* Button to delete payment */}
         <TouchableOpacity
@@ -586,18 +584,14 @@ const ClientConsultation = () => {
     setEditClient(client);
     setPlatCredit(true);
   };
-  const DeleteVersmentPlat = (VersmentPlat) => {
-    console.log(VersmentPlat.Versment_ID);
-    deleteVersmentPlat(VersmentPlat.Versment_ID);
-    updateFactureValiderPlat(VersmentPlat.Facture_ID, 0);
-    VersmentFacturePlat();
-  };
-
   useEffect(() => {
     if (Versment_Plat) {
       GetAll("produit", setproduit);
       //  console.log("selectedFacture" + selectedFacture);
       VersmentFacturePlat();
+    }
+    if (!Versment_Plat) {
+      handlePlatCredit(editClient);
     }
   }, [Versment_Plat]);
 
@@ -792,7 +786,7 @@ const ClientConsultation = () => {
             <FlatList
               data={filteredFactPlat}
               renderItem={renderFactureItemfor_Plat}
-              keyExtractor={(item) => item.id}
+              keyExtractor={(item) => item.Facture_ID}
             />
           </View>
         </Modal>
