@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
+  Image,
   Text,
   TextInput,
   ScrollView,
@@ -10,6 +11,10 @@ import {
 } from "react-native";
 import { useRef } from "react";
 import * as Print from "expo-print";
+import PrintIcon from "@/assets/icons/printer1.png";
+import VaiderIcon from "@/assets/icons/validation.png";
+
+import FactureIcon from "@/assets/icons/invoice.png";
 
 function ccyFormat(num) {
   return `${num.toFixed(2)}`;
@@ -172,7 +177,7 @@ export default function SpanningTable({
           <div class="ticket">
             <h1>RECEIPT</h1>
             <div class="header">
-              رقم الفاتورة: ${facture_id}
+             
             </div>
 
             <div class="separator">- - - - - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -</div>
@@ -245,12 +250,55 @@ export default function SpanningTable({
     <View style={styles.container}>
       <ScrollView style={styles.table} ref={scrollViewRef}>
         <View style={styles.head}>
-          <Pressable onPress={() => Savefunction()}>
-            <Text style={styles.details}>تأكيد</Text>
+          <Pressable
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignContent: "center",
+              backgroundColor: "white",
+              borderColor: "#b5e2ff",
+              borderWidth: 2.5,
+              borderRadius: 10,
+              width: 50,
+              height: 35,
+              shadowColor: "#000",
+              shadowOffset: {
+                width: 0,
+                height: 5,
+              },
+              shadowOpacity: 0.3,
+              shadowRadius: 10,
+              // Android elevation property
+              elevation: 5,
+            }}
+            onPress={() => Savefunction()}
+          >
+            <Image source={VaiderIcon} style={styles.icon} />
           </Pressable>
-          <Text style={styles.library}>طارق</Text>
-          <Pressable onPress={print}>
-            <Text style={styles.printButtonText}>طباعة</Text>
+          <Pressable
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignContent: "center",
+              backgroundColor: "white",
+              borderColor: "#b5e2ff",
+              borderWidth: 2.5,
+              borderRadius: 10,
+              width: 50,
+              height: 35,
+              shadowColor: "#000",
+              shadowOffset: {
+                width: 0,
+                height: 5,
+              },
+              shadowOpacity: 0.3,
+              shadowRadius: 10,
+              // Android elevation property
+              elevation: 5,
+            }}
+            onPress={print}
+          >
+            <Image source={PrintIcon} style={styles.icon} />
           </Pressable>
         </View>
         <View style={styles.row}>
@@ -356,6 +404,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#ccc",
   },
   headerCell: {
+    fontWeight: "bold",
     textAlign: "center",
     flex: 1,
   },
@@ -396,5 +445,12 @@ const styles = StyleSheet.create({
 
     color: "whitesmoke",
     fontWeight: "bold",
+  },
+  icon: {
+    alignSelf: "center",
+    justifyContent: "center",
+    alignContent: "center",
+    width: 30, // Set width of the icon
+    height: 30, // Set height of the icon
   },
 });

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   FlatList,
   TextInput,
@@ -16,6 +17,8 @@ import {
   deleteFacture,
   Get_ALL_Factures_Factprod,
 } from "@/app/Lib/bdd";
+import FactureIcon from "@/assets/icons/invoice.png";
+
 // Column names
 const columns = [
   { key: "client_nom", label: "اسم العميل" },
@@ -26,37 +29,11 @@ const columns = [
 ];
 
 // Invoice data
-const initialInvoices = [
-  {
-    Facture_ID: "1",
-    client_nom: "علي محمد",
-    Montant_Total: "1000",
-    ValiderMoney: "مدفوع",
-    ValiderPlat: "مدفوع",
-    Date_Creat: "2024-09-30",
-  },
-  {
-    Facture_ID: "2",
-    client_nom: "علي محمد",
-    Montant_Total: "1000",
-    ValiderMoney: "مدفوع",
-    ValiderPlat: "مدفوع",
-    Date_Creat: "2024-09-30",
-  },
-  {
-    Facture_ID: "3",
-    client_nom: "علي محمد",
-    Montant_Total: "1000",
-    ValiderMoney: "مدفوع",
-    ValiderPlat: "مدفوع",
-    Date_Creat: "2024-09-30",
-  },
-];
 
 const InvoiceConsultation = () => {
   const Thead = ["المجموع", "الكمية", "السعر", "الاسم"];
 
-  const [invoices, setInvoices] = useState(initialInvoices);
+  const [invoices, setInvoices] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [editInvoice, setEditInvoice] = useState(null);
   const [rows, setrows] = useState([]);
@@ -106,7 +83,9 @@ const InvoiceConsultation = () => {
   };
 
   const filteredInvoices = invoices.filter((invoice) => {
-    return invoice.client_nom.toLowerCase().includes(searchQuery.toLowerCase());
+    const fullName =
+      `${invoice.client_nom} ${invoice.client_prenom}`.toLowerCase(); // Combine client_nom and client_prenom
+    return fullName.includes(searchQuery.toLowerCase()); // Check if the searchQuery matches the full name
   });
 
   const handleSaveChanges = () => {
@@ -139,6 +118,13 @@ const InvoiceConsultation = () => {
           <Text style={styles.label} key={column.key}>
             {column.label}:
             <Text style={styles.value}>{formatDate(item[column.key])}</Text>
+          </Text>
+        ) : column.key === "client_nom" ? (
+          <Text style={styles.label} key={column.key}>
+            {column.label}:{" "}
+            <Text style={styles.value}>
+              {item[column.key] + " " + item.client_prenom}
+            </Text>
           </Text>
         ) : (
           <Text style={styles.label} key={column.key}>
@@ -186,7 +172,21 @@ const InvoiceConsultation = () => {
   }, [ConsulterFacture_Model]);
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>متابعة الفواتير</Text>
+      <View
+        style={{
+          marginBottom: 10,
+          height: 50,
+          borderRadius: 10,
+          display: "flex",
+          flexDirection: "row",
+          justifyContent: "center",
+          alignContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <Text style={styles.header}>متابعة الفواتير</Text>
+        <Image source={FactureIcon} style={styles.icon} />
+      </View>
 
       <TextInput
         style={styles.searchInput}
@@ -301,7 +301,6 @@ const styles = StyleSheet.create({
   header: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 20,
     textAlign: "center",
   },
   searchInput: {
@@ -367,6 +366,10 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     color: "white",
+  },
+  icon: {
+    width: 30, // Set width of the icon
+    height: 30, // Set height of the icon
   },
 });
 

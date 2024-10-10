@@ -19,6 +19,7 @@ import {
 } from "@/app/Lib/bdd";
 import React, { useEffect, useState } from "react";
 import {
+  Image,
   Alert,
   Button,
   FlatList,
@@ -29,6 +30,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Clienticon from "@/assets/icons/Client.png";
+
 import { Picker } from "@react-native-picker/picker"; // Correctly import Picker
 import { useStoreRootState } from "expo-router/build/global-state/router-store";
 
@@ -161,9 +164,10 @@ const ClientConsultation = () => {
   };
 
   const filteredClients = clients.filter((client) => {
-    //console.log(client);
-    return client.Nom.toLowerCase().includes(searchQuery.toLowerCase());
+    const fullName = `${client.Nom} ${client.Prenom}`.toLowerCase(); // Combine Nom and Prenom
+    return fullName.includes(searchQuery.toLowerCase()); // Check if it includes the search query
   });
+
   const handleSearch_Fact = (query) => {
     setSearchQuery_Fact(query);
   };
@@ -379,7 +383,7 @@ const ClientConsultation = () => {
         اٍجمالي الأطباق :<Text style={styles.value}>{item.Plat} </Text>
       </Text>
       <Text style={styles.label}>
-        باقي الاطباق: <Text style={styles.value}>{item.reste} طبق</Text>
+        باقي الاطباق: <Text style={styles.value}>{"\n" + item.reste}</Text>
       </Text>
       <Text style={styles.label}>
         التاريخ: <Text style={styles.value}>{formatDate(item.Date_Creat)}</Text>
@@ -418,11 +422,11 @@ const ClientConsultation = () => {
           }
         }
       }
-      var creditOmbalagee = "";
+      var creditOmbalagee = "\n";
       CreditPlat.map((cp, i) => {
         if (i === 0) {
         } else {
-          creditOmbalagee = creditOmbalagee + "و";
+          creditOmbalagee = creditOmbalagee + "\n";
         }
         creditOmbalagee =
           creditOmbalagee + cp.Plat + ":" + "{" + cp.Produit + "}  ";
@@ -558,7 +562,7 @@ const ClientConsultation = () => {
         CreditPlat.map((cp, i) => {
           if (i === 0) {
           } else {
-            creditOmbalagee = creditOmbalagee + "و";
+            creditOmbalagee = creditOmbalagee + "\n";
           }
           creditOmbalagee =
             creditOmbalagee + cp.Plat + ":" + "{" + cp.Produit + "}  ";
@@ -619,11 +623,25 @@ const ClientConsultation = () => {
     <View style={styles.container}>
       {ConsulterClient && (
         <View>
-          <Text style={styles.header}>متابعة الزبائن </Text>
+          <View
+            style={{
+              marginBottom: 10,
+              height: 50,
+              borderRadius: 10,
+              display: "flex",
+              flexDirection: "row",
+              justifyContent: "center",
+              alignContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <Text style={styles.header}>متابعة الزبائن </Text>
+            <Image source={Clienticon} style={styles.icon} />
+          </View>
           {/* Search Input */}
           <TextInput
             style={styles.searchInput}
-            placeholder="...البحث عن الزبون بالاسم"
+            placeholder="البحث عن الزبون بالاسم و اللقب...."
             value={searchQuery}
             onChangeText={handleSearch}
           />
@@ -910,7 +928,6 @@ const styles = StyleSheet.create({
   header: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 20,
     textAlign: "center",
   },
   modalBackground: {
@@ -1049,6 +1066,9 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   deleteButton: {
+    display: "flex",
+    justifyContent: "center",
+    width: 280,
     backgroundColor: "red",
     padding: 10,
     borderRadius: 5,
@@ -1060,6 +1080,10 @@ const styles = StyleSheet.create({
   },
   addButtonContainer: {
     marginTop: 20,
+  },
+  icon: {
+    width: 30, // Set width of the icon
+    height: 30, // Set height of the icon
   },
 });
 

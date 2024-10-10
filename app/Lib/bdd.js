@@ -439,28 +439,58 @@ async function Get_ALL_Factures_Factprod(id) {
 
 async function GetFacturesWithClientName() {
   try {
-    // Prepare the SQL statement with JOIN to fetch client name
+    // Prepare the SQL statement with JOIN to fetch client name and prenom
     const statement = await (
       await db
     ).prepareAsync(`
-      SELECT f.*, c.nom AS client_nom 
+      SELECT f.*, c.Nom AS client_nom, c.Prenom AS client_prenom
       FROM Facture f
       JOIN client c ON f.Client_ID = c.Client_ID
-      
     `);
 
-    // Execute the statement with the given factureId
+    // Execute the statement and get the results
     const result = await statement.executeAsync();
     const facturesArray = await result.getAllAsync(); // Get all results
-    console.log("facturesArray" + facturesArray);
-    // Finalize the statement to release resources
+
+    console.log("facturesArray", facturesArray);
+
+    // Finalize the statement to release resources if necessary
     // await statement.finalizeAsync();
 
-    return facturesArray; // Return the results with 'client_nom'
+    return facturesArray; // Return the results with 'client_nom' and 'client_prenom'
   } catch (error) {
-    console.error("Error fetching facture with client name:", error);
+    console.error("Error fetching facture with client name and prenom:", error);
   }
 }
+const getClientByName = async (nom, prenom) => {
+  try {
+    const dbInstance = await db; // Await the database instance
+
+    // Prepare the SQL query with placeholders
+    const statement = await dbInstance.prepareAsync(`
+      SELECT * FROM Client
+      WHERE Nom = ? AND Prenom = ?;
+    `);
+
+    // Execute the prepared statement with the provided parameters
+    const r = await statement.executeAsync([nom, prenom]);
+
+    // Retrieve all results using getAllAsync
+    const result = await r.getAllAsync();
+
+    // Check if any clients were found
+    if (result.length > 0) {
+      //  console.log("Clients found:", result);
+      return result; // Return the array of found clients
+    } else {
+      // console.log("No clients found with the provided name.");
+      return null; // Return null if no clients are found
+    }
+  } catch (error) {
+    console.error("Error fetching clients by name:", error);
+    throw error; // Rethrow the error for handling outside
+  }
+};
 
 //--Produit---------------------------------------------------
 const addProduit = async (nom, prix, returnValue) => {
@@ -1170,4 +1200,5 @@ module.exports = {
   creatAll,
   GetFacturesWithClientName,
   Get_ALL_Factures_Factprod,
+  getClientByName,
 };

@@ -17,6 +17,7 @@ import {
   addFacture,
   addFactProd,
   addVersment,
+  getClientByName,
   getProduitStatusByNom,
 } from "@/app/Lib/bdd";
 import { Picker } from "@react-native-picker/picker"; // Correctly import Picker
@@ -94,13 +95,19 @@ function Sales() {
       Alert.alert("خطأ", "الرجاء ملئ جميع معلومات الزبون الجديد");
       return;
     }
-    const r = await addClient(nom, prenom, num);
-    console.log("client added" + JSON.stringify(r));
-    let client_ID = JSON.stringify(r);
-    if (client_ID) {
-      setCurrentClient(prenom);
-      setCurrentClient_ID(client_ID);
-      setmodel(false);
+    const check = await getClientByName(nom, prenom);
+    if (check && check[0].Client_ID) {
+      Alert.alert("تنبيه!", "الزبون " + nom + " " + prenom + " موجود  ");
+    } else {
+      console.log("check" + JSON.stringify(check));
+      const r = await addClient(nom, prenom, num);
+      console.log("client added" + JSON.stringify(r));
+      let client_ID = JSON.stringify(r);
+      if (client_ID) {
+        setCurrentClient(prenom);
+        setCurrentClient_ID(client_ID);
+        setmodel(false);
+      }
     }
   };
   const selecteClient = () => {
@@ -258,12 +265,7 @@ function Sales() {
           </View>
         </Modal>
       )}
-      <Modal
-        animationType="slide"
-        transparent={false}
-        visible={model}
-        onRequestClose={() => setmodel(false)}
-      >
+      <Modal animationType="slide" transparent={false} visible={model}>
         <View style={styles.modalBackground}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>معلومات الزبون</Text>
@@ -295,6 +297,7 @@ function Sales() {
               title="إضافة زبون جديد"
               color="#4CAF50"
             />
+            <View style={styles.NewClient}></View>
 
             <Picker
               selectedValue={selectedClient} // Select by client_ID
@@ -423,6 +426,7 @@ const styles = StyleSheet.create({
     marginRight: 10, // Add space between picker and other elements
   },
   pickerm: {
+    marginVertical: 10,
     flex: 1,
     maxHeight: 20,
     backgroundColor: "#f0f0f0", // Light background for the picker
@@ -434,11 +438,13 @@ const styles = StyleSheet.create({
     borderColor: "gray",
     borderRadius: 5,
     padding: 10,
+
     marginBottom: 20,
   },
   input: {
     flex: 1,
     height: 40,
+    marginLeft: 5,
     borderColor: "#ccc", // Light border
     borderWidth: 1,
     borderRadius: 5,
@@ -520,6 +526,13 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)", // Dark transparent background
   },
   pickeritem: {},
+  NewClient: {
+    marginTop: 10,
+    backgroundColor: "black",
+    width: "100%",
+    height: 2,
+    borderRadius: 20,
+  },
 });
 
 export default Sales;

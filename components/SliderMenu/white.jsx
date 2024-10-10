@@ -24,11 +24,12 @@ import Produit from "@/app/Produit/page";
 import WelcomPage from "@/components/WelcomPage/page";
 import Enployee from "@/app/Employe/page";
 import Facture from "@/app/Factures/page";
+
 const { width: screenWidth } = Dimensions.get("window");
 
 const SliderMenu = () => {
   const [open, setOpen] = useState(false);
-  const slideAnim = useRef(new Animated.Value(screenWidth * 0.9)).current; // Use 80% of screen width
+  const slideAnim = useRef(new Animated.Value(screenWidth * 0.9)).current;
   const [WelcomPaged, setWelcomPaged] = useState(true);
 
   const [SalesPage, setSales] = useState(false);
@@ -40,7 +41,7 @@ const SliderMenu = () => {
   const sliderFunction = () => {
     if (open) {
       Animated.timing(slideAnim, {
-        toValue: screenWidth * 0.9, // Move sidebar out of view
+        toValue: screenWidth * 0.9,
         duration: 300,
         easing: Easing.ease,
         useNativeDriver: false,
@@ -48,7 +49,7 @@ const SliderMenu = () => {
       setOpen(false);
     } else {
       Animated.timing(slideAnim, {
-        toValue: 0, // Slide sidebar into view
+        toValue: 0,
         duration: 300,
         easing: Easing.ease,
         useNativeDriver: false,
@@ -56,6 +57,7 @@ const SliderMenu = () => {
       setOpen(true);
     }
   };
+
   const Display_Sales = () => {
     setWelcomPaged(false);
     setSales(true);
@@ -65,9 +67,9 @@ const SliderMenu = () => {
     setProduit(false);
     sliderFunction();
   };
+
   const Display_Enployee = () => {
     setWelcomPaged(false);
-
     setSales(false);
     setClient(false);
     setFactures(false);
@@ -75,9 +77,9 @@ const SliderMenu = () => {
     setProduit(false);
     sliderFunction();
   };
+
   const Display_Client = () => {
     setWelcomPaged(false);
-
     setSales(false);
     setClient(true);
     setFactures(false);
@@ -85,9 +87,9 @@ const SliderMenu = () => {
     setProduit(false);
     sliderFunction();
   };
+
   const Display_Produit = () => {
     setWelcomPaged(false);
-
     setSales(false);
     setClient(false);
     setFactures(false);
@@ -95,9 +97,9 @@ const SliderMenu = () => {
     setProduit(true);
     sliderFunction();
   };
+
   const Display_Factures = () => {
     setWelcomPaged(false);
-
     setSales(false);
     setClient(false);
     setFactures(true);
@@ -229,7 +231,7 @@ const SliderMenu = () => {
               onPress={sliderFunction}
               style={styles.openButton}
             >
-              <Icon name="bars" size={22} color="white" />
+              <Icon name="bars" size={18} color="white" />
             </TouchableOpacity>
           )}
         </View>
@@ -250,24 +252,19 @@ export default SliderMenu;
 
 const styles = StyleSheet.create({
   Firstheader: {
-    backgroundColor: "#333",
+    marginTop: 1,
+    marginBottom: 5,
+    backgroundColor: "#333", // White background
     height: 51,
-    borderBottomColor: "#fff",
-
-    borderBottomWidth: 0.9,
-    borderRadius: 5,
   },
   containerClosed: {
     position: "absolute",
     zIndex: 10000,
-
     height: 290,
     flexDirection: "row",
   },
-
   container: {
     position: "absolute",
-
     zIndex: 10000,
     height: 990,
     flexDirection: "row",
@@ -278,7 +275,7 @@ const styles = StyleSheet.create({
     left: 0,
     height: "100%",
     width: 250,
-    backgroundColor: "#333",
+    backgroundColor: "#F5F5F5", // Light gray for sidebar
     padding: 15,
   },
   header: {
@@ -300,60 +297,56 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   name: {
-    color: "#fff",
+    color: "#333", // Dark color for name
     fontWeight: "600",
   },
   profession: {
-    color: "#bbb",
+    color: "#555", // Darker gray for profession
   },
   icon: {
     fontSize: 24,
-    color: "#fff",
+    color: "#333", // Dark color for icons
   },
   menu: {
     flex: 1,
   },
   searchBox: {
-    backgroundColor: "#444",
+    backgroundColor: "#EAEAEA", // Light gray for search box
     borderRadius: 6,
     marginBottom: 20,
     paddingHorizontal: 10,
   },
   searchInput: {
-    color: "#fff",
+    color: "#333", // Dark color for input text
     height: 40,
   },
   menuLinks: {
-    marginBottom: 20,
+    flexGrow: 1,
   },
   navLink: {
-    paddingVertical: 15,
-    paddingHorizontal: 10,
-    backgroundColor: "#555",
-    marginBottom: 10,
-    borderRadius: 6,
+    paddingVertical: 10,
   },
   navText: {
-    color: "#fff",
     fontSize: 16,
+    color: "#333", // Dark color for nav text
   },
   bottom: {
-    marginTop: "auto",
+    position: "absolute",
+    bottom: 10,
+    left: 15,
+    right: 15,
   },
   bottomLink: {
-    paddingVertical: 15,
-    paddingHorizontal: 10,
-    backgroundColor: "#555",
-    borderRadius: 6,
+    paddingVertical: 10,
   },
   openButton: {
     position: "absolute",
-    top: 1,
-    left: 1,
-    zIndex: 1000,
+    left: 10,
+    top: 10,
+    zIndex: 100,
+    backgroundColor: "#333", // Dark color for open button
+    borderRadius: 30,
     padding: 10,
-    backgroundColor: "#fofof1",
-    borderRadius: 8,
   },
   icon: {
     width: 30, // Set width of the icon

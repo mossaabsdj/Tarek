@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,134 +8,157 @@ import {
   Button,
   Modal,
   TouchableOpacity,
+  Alert,
+  Image,
 } from "react-native";
 // Column names
+import {
+  GetAll,
+  addEmployee,
+  deleteEmployee,
+  deleteCreditEmployee,
+  updateEmployee,
+  addCreditEmployee,
+} from "@/app/Lib/bdd";
+import EmployeeIcon from "@/assets/icons/workers.png";
+
 const columns = [
-  { key: "name", label: "الاسم" },
-  { key: "surname", label: "اللقب" },
-  { key: "num", label: "رقم الهاتف" },
-  { key: "salary", label: "تاريخ الراتب" },
+  { key: "Nom", label: "الاسم" },
+  { key: "Prenom", label: "اللقب" },
+  { key: "Num", label: "رقم الهاتف" },
+  { key: "Salery_Date", label: "تاريخ الراتب" },
 ];
 
 // Employee data
-const initialEmployees = [
-  {
-    id: "1",
-    name: "ساعد جاب الله",
-    surname: "مصعب",
-    num: "123456789",
-    salary: 1000,
-  },
-  {
-    id: "2",
-    name: "ساعد جاب الله",
-    surname: "عثمان",
-    num: "987654321",
-    salary: 1200,
-  },
-  {
-    id: "3",
-    name: "ساعد جاب الله",
-    surname: "ياسين",
-    num: "456789123",
-    salary: 1100,
-  },
-];
 
 const EmployeeConsultation = () => {
-  const [employees, setEmployees] = useState(initialEmployees);
+  const [employees, setEmployees] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [editEmployee, setEditEmployee] = useState(null);
   const [editEmployeeModel, setEditEmployeeModel] = useState(false);
-
   const [consulterDeductionsModel, setConsulterDeductionsModel] =
     useState(false);
+  const [deductions_Employee, setDeductions_Employee] = useState();
+
   const [deductions, setDeductions] = useState([]);
   const [deductionSum, setDeductionSum] = useState("");
   const [deductionDate, setDeductionDate] = useState("");
   const [addEmployeeModel, setAddEmployeeModel] = useState(false);
   const [newEmployee, setNewEmployee] = useState({
-    name: "",
-    surname: "",
-    num: "",
-    salary: "",
+    Nom: "",
+    Prenom: "",
+    Num: "",
+    Salery_Date: "",
   });
+  const arabicMonths = [
+    "يناير",
+    "فبراير",
+    "مارس",
+    "أبريل",
+    "مايو",
+    "يونيو",
+    "يوليو",
+    "أغسطس",
+    "سبتمبر",
+    "أكتوبر",
+    "نوفمبر",
+    "ديسمبر",
+  ];
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+
+    // Get day, month, year, and time components
+    const day = date.getDate(); // Day in Arabic
+    const month = arabicMonths[date.getMonth()]; // Month in Arabic
+    const year = date.getFullYear(); // Year in French
+    const options = {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true, // Change to false for 24-hour format
+    };
+    const time = date.toLocaleString("fr-FR", options); // Time in French
+
+    return `${day} ${month} ${year}, ${time}`; // Combine components
+  };
   const handleSearch = (query) => {
     setSearchQuery(query);
   };
-
   const filteredEmployees = employees.filter((employee) => {
-    return employee.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const fullName = `${employee.Nom} ${employee.Prenom}`.toLowerCase(); // Combine Nom and Prenom
+    return fullName.includes(searchQuery.toLowerCase()); // Check if it includes the search query
   });
 
   const handleModifyEmployee = (employee) => {
     setEditEmployee(employee);
     setEditEmployeeModel(true);
   };
-
-  const handleSaveChanges = () => {
-    console.log(editEmployee);
-    setEmployees((prevEmployees) =>
-      prevEmployees.map((employee) =>
-        employee.id === editEmployee.id ? editEmployee : employee
-      )
+  const handleSaveChanges = async () => {
+    await updateEmployee(
+      editEmployee.Employee_ID,
+      editEmployee.Nom,
+      editEmployee.Prenom,
+      editEmployee.Num,
+      editEmployee.Salery_Date
     );
+    await GetAllEmployee();
     setEditEmployeeModel(false);
   };
-
-  const handleAddDeduction = () => {
+  const handleAddDeduction = async () => {
     if (deductionSum) {
-      const newDeduction = {
-        id: Math.random().toString(),
-        sum: deductionSum,
-        date: deductionDate, // Store the deduction date
-      };
-      setDeductions((prev) => [...prev, newDeduction]);
+      console.log(deductions_Employee.Employee_ID);
+      await addCreditEmployee(deductions_Employee.Employee_ID, deductionSum);
+      await GetDudection();
       setDeductionSum("");
-      setDeductionDate("");
     }
   };
-
-  const handleDeleteDeduction = (id) => {
-    setDeductions((prev) => prev.filter((deduction) => deduction.id !== id));
+  const handleDeleteDeduction = async (id) => {
+    console.log(id);
+    await deleteCreditEmployee(id);
+    await GetDudection();
   };
-  const handleAddEmployee = () => {
+  const handleAddEmployee = async () => {
     if (
-      newEmployee.name &&
-      newEmployee.surname &&
-      newEmployee.num &&
-      newEmployee.salary
+      newEmployee.Nom &&
+      newEmployee.Prenom &&
+      newEmployee.Num &&
+      newEmployee.Salery_Date
     ) {
-      const employeeToAdd = {
-        id: Math.random().toString(),
-        name: newEmployee.name,
-        surname: newEmployee.surname,
-        num: newEmployee.num,
-        salary: newEmployee.salary,
-      };
-      setEmployees((prev) => [...prev, employeeToAdd]);
+      await addEmployee(
+        newEmployee.Nom,
+        newEmployee.Prenom,
+        newEmployee.Num,
+        newEmployee.Salery_Date
+      );
+
       setNewEmployee({
-        name: "",
-        surname: "",
-        num: "",
-        salary: "",
+        Nom: "",
+        Prenom: "",
+        Num: "",
+        Salery_Date: "",
       });
       setAddEmployeeModel(false);
+      await GetAllEmployee();
+    } else {
+      Alert.alert("يجب ملأ جميع المعلومات");
     }
   };
-  const handleDeleteEmployee = (id) => {
-    setEmployees((prev) => prev.filter((employee) => employee.id !== id));
+  const handleDeleteEmployee = async (id) => {
+    await deleteEmployee(id);
+    await GetAllEmployee();
   };
-
   const renderDeductionItem = ({ item }) => (
     <View style={styles.deductionItem}>
       <Text style={styles.deductionText}>
-        {`المبلغ: ${item.sum} - التاريخ: ${item.date}`}
+        {`المبلغ: ${item.Somme} - التاريخ: ${formatDate(item.Date)}`}
       </Text>
-      <Button title="حذف" onPress={() => handleDeleteDeduction(item.id)} />
+      <Button
+        color="red"
+        title="حذف"
+        onPress={() => handleDeleteDeduction(item.Credit_ID)}
+      />
     </View>
   );
-
   const renderEmployeeItem = ({ item }) => (
     <View style={styles.card}>
       <Text style={styles.title}>معلومات الموظف</Text>
@@ -147,15 +170,31 @@ const EmployeeConsultation = () => {
       <Button
         title=" اقتطاعات "
         onPress={() => {
-          setDeductions([]); // Reset deductions when opening modal
+          setDeductions_Employee(item); // Reset deductions when opening modal
           setConsulterDeductionsModel(true);
         }}
       />
       <Button title="تعديل" onPress={() => handleModifyEmployee(item)} />
-      <Button title="حذف" onPress={() => handleDeleteEmployee(item.id)} />
+      <Button
+        title="حذف"
+        onPress={() => handleDeleteEmployee(item.Employee_ID)}
+      />
     </View>
   );
-
+  async function GetAllEmployee() {
+    await GetAll("Employee", setEmployees);
+  }
+  useEffect(() => {
+    GetAllEmployee();
+  }, []);
+  async function GetDudection() {
+    await GetAll("Credit_Employee", setDeductions);
+  }
+  useEffect(() => {
+    if (consulterDeductionsModel) {
+      GetDudection();
+    }
+  }, [consulterDeductionsModel]);
   return (
     <View style={styles.container}>
       {/* Deductions Modal */}
@@ -181,12 +220,7 @@ const EmployeeConsultation = () => {
             keyboardType="numeric"
             onChangeText={setDeductionSum}
           />
-          <TextInput
-            style={styles.input}
-            value={deductionDate} // Simple text input for date
-            onChangeText={(text) => setDeductionDate(text)}
-            placeholder="تاريخ الراتب"
-          />
+
           <Button title="إضافة اقتطاع" onPress={handleAddDeduction} />
           <FlatList
             data={deductions}
@@ -195,13 +229,22 @@ const EmployeeConsultation = () => {
           />
         </View>
       </Modal>
+      <View
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          justifyContent: "center",
+        }}
+      >
+        <Text style={styles.header}>متابعة الموظفين</Text>
+        <Image source={EmployeeIcon} style={styles.icon} />
+      </View>
 
-      <Text style={styles.header}>متابعة الموظفين</Text>
       <Button title="إضافة موظف" onPress={() => setAddEmployeeModel(true)} />
 
       <TextInput
         style={styles.searchInput}
-        placeholder="...البحث عن الموظف بالاسم"
+        placeholder="البحث عن الموظف بالاسم و اللقب... "
         value={searchQuery}
         onChangeText={handleSearch}
       />
@@ -231,34 +274,34 @@ const EmployeeConsultation = () => {
 
             <TextInput
               style={styles.input}
-              value={editEmployee.name}
+              value={editEmployee.Nom}
               onChangeText={(text) =>
-                setEditEmployee({ ...editEmployee, name: text })
+                setEditEmployee({ ...editEmployee, Nom: text })
               }
               placeholder="اسم"
             />
             <TextInput
               style={styles.input}
-              value={editEmployee.surname}
+              value={editEmployee.Prenom}
               onChangeText={(text) =>
-                setEditEmployee({ ...editEmployee, surname: text })
+                setEditEmployee({ ...editEmployee, Prenom: text })
               }
               placeholder="لقب"
             />
             <TextInput
               style={styles.input}
-              value={editEmployee.num}
+              value={editEmployee.Num}
               keyboardType="numeric"
               onChangeText={(text) =>
-                setEditEmployee({ ...editEmployee, num: text })
+                setEditEmployee({ ...editEmployee, Num: text })
               }
               placeholder="رقم الهاتف"
             />
             <TextInput
               style={styles.input}
-              value={editEmployee.salary} // Simple text input for date
+              value={editEmployee.Salery_Date} // Simple text input for date
               onChangeText={(text) =>
-                setEditEmployee({ ...editEmployee, salary: text })
+                setEditEmployee({ ...editEmployee, Salery_Date: text })
               }
               placeholder="تاريخ الراتب"
             />
@@ -286,34 +329,34 @@ const EmployeeConsultation = () => {
 
             <TextInput
               style={styles.input}
-              value={newEmployee.name}
+              value={newEmployee.Nom}
               onChangeText={(text) =>
-                setNewEmployee({ ...newEmployee, name: text })
+                setNewEmployee({ ...newEmployee, Nom: text })
               }
               placeholder="اسم"
             />
             <TextInput
               style={styles.input}
-              value={newEmployee.surname}
+              value={newEmployee.Prenom}
               onChangeText={(text) =>
-                setNewEmployee({ ...newEmployee, surname: text })
+                setNewEmployee({ ...newEmployee, Prenom: text })
               }
               placeholder="لقب"
             />
             <TextInput
               style={styles.input}
-              value={newEmployee.num}
+              value={newEmployee.Num}
               keyboardType="numeric"
               onChangeText={(text) =>
-                setNewEmployee({ ...newEmployee, num: text })
+                setNewEmployee({ ...newEmployee, Num: text })
               }
               placeholder="رقم الهاتف"
             />
             <TextInput
               style={styles.input}
-              value={newEmployee.salary}
+              value={newEmployee.Salery_Date}
               onChangeText={(text) =>
-                setNewEmployee({ ...newEmployee, salary: text })
+                setNewEmployee({ ...newEmployee, Salery_Date: text })
               }
               placeholder="تاريخ الراتب"
             />
@@ -352,6 +395,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   title: {
+    alignSelf: "center",
     fontSize: 18,
     fontWeight: "bold",
   },
@@ -362,6 +406,7 @@ const styles = StyleSheet.create({
     fontWeight: "normal",
   },
   modalView: {
+    height: 700,
     margin: 20,
     backgroundColor: "white",
     borderRadius: 20,
@@ -406,16 +451,20 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   deductionItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    marginTop: 20,
+    flexDirection: "column",
+    justifyContent: "center",
     padding: 10,
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 5,
-    marginBottom: 5,
   },
   deductionText: {
     fontSize: 16,
+  },
+  icon: {
+    width: 30, // Set width of the icon
+    height: 30, // Set height of the icon
   },
 });
 

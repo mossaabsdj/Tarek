@@ -1,5 +1,13 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import {
+  Image,
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+} from "react-native";
+import appicon from "@/assets/icons/app.png";
 
 const WelcomePage = ({ functionStart }) => {
   const handleGetStarted = () => {
@@ -90,6 +98,12 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#fff",
     fontSize: 18,
+  },
+  icon: {
+    marginTop: 100,
+    marginBottom: 100,
+    width: 300, // Set width of the icon
+    height: 300, // Set height of the icon
   },
 });
 

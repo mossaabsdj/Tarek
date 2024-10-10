@@ -4,12 +4,14 @@ import {
   Text,
   StyleSheet,
   FlatList,
+  Image,
   TextInput,
   Button,
   Modal,
   TouchableOpacity,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker"; // Correctly import Picker
+import ProduitIcon from "@/assets/icons/box.png";
 
 import {
   GetAll,
@@ -173,7 +175,21 @@ const ClientConsultation = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>متابعة المنتجات</Text>
+      <View
+        style={{
+          marginBottom: 10,
+          height: 50,
+          borderRadius: 10,
+          display: "flex",
+          flexDirection: "row",
+          justifyContent: "center",
+          alignContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <Text style={styles.header}>متابعة المنتجات</Text>
+        <Image source={ProduitIcon} style={styles.icon} />
+      </View>
       <Button title="إضافة منتج" onPress={handleAddProduit} />
 
       <TextInput
@@ -212,7 +228,6 @@ const styles = StyleSheet.create({
   header: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 20,
     textAlign: "center",
   },
   searchInput: {
@@ -301,6 +316,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flex: 1, // Make the picker take up remaining space
     height: 50,
+  },
+  icon: {
+    width: 30, // Set width of the icon
+    height: 30, // Set height of the icon
   },
 });
 
