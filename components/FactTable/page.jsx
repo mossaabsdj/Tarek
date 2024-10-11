@@ -141,11 +141,11 @@ export default function SpanningTable({
               align-items: center;
               padding: 0 10px;
               padding-bottom: 5px;
-              margin-right:20px;
+              margin-right:80px;
             }
             .items {
               font-size: 2em;
-              margin-bottom: 20px;
+              margin-bottom: 0px;
               text-align: right;
               padding: 0 10px;
             }
@@ -153,11 +153,13 @@ export default function SpanningTable({
               padding: 5px 0;
               display: flex;
               justify-content: space-between;
+               margin-bottom: 40px;
             }
             .item span {
               text-align: center;
               font-size: 1.4em;
               width: 20%;
+
             }
             .total {
               font-weight: bold;
@@ -167,7 +169,7 @@ export default function SpanningTable({
               text-align: center;
             }
             .footer {
-              margin-top: 30px;
+              margin-top: 10px;
               font-size: 2.5em;
               text-align: center;
             }
@@ -177,13 +179,13 @@ export default function SpanningTable({
           <div class="ticket">
             <h1>RECEIPT</h1>
             <div class="header">
-             
+             قلب اللوز طاهر
             </div>
 
             <div class="separator">- - - - - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -</div>
 
             <div class="date-client">
-              <div>   ال${new Date().toLocaleDateString("fr-FR")}</div>
+              <div>${new Date().toLocaleDateString("fr-FR")}</div>
               <div>اسم العميل: ${client_name}</div>
             </div>
 
@@ -192,7 +194,7 @@ export default function SpanningTable({
             <div class="items">
               <div class="item">
                 <span>الرقم</span>
-                <span>الاسم</span>
+                <span>المنتج</span>
                 <span>السعر</span>
                 <span>الكمية</span>
                 <span>المجموع</span>

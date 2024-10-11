@@ -9,10 +9,7 @@ import {
   Animated,
   Easing,
   Dimensions,
-  ImageBackground,
 } from "react-native";
-import logoutIcon from "@/assets/icons/logout.png";
-import FlechIcon from "@/assets/icons/slide-right.png";
 import StoreIcon from "@/assets/icons/store.png";
 import ProduitIcon from "@/assets/icons/box.png";
 import EmployeeIcon from "@/assets/icons/workers.png";
@@ -20,8 +17,6 @@ import FactureIcon from "@/assets/icons/invoice.png";
 import Clienticon from "@/assets/icons/Client.png";
 import Salesicon from "@/assets/icons/Sales.png";
 import img from "@/assets/images/icon.png";
-import header from "@/assets/images/header.jpg";
-
 import Icon from "react-native-vector-icons/FontAwesome";
 import Sales from "@/app/NewSales/page";
 import Client from "@/app/Client/page";
@@ -110,26 +105,13 @@ const SliderMenu = () => {
     setProduit(false);
     sliderFunction();
   };
-  const Display_WelcomPage = () => {
-    setWelcomPaged(true);
-    setSales(false);
-    setClient(false);
-    setFactures(false);
-    setEnployee(false);
-    setProduit(false);
-    sliderFunction();
-  };
 
   return (
     <View>
       <View>
-        <ImageBackground
-          source={header} // Local image or use a URL
-          style={styles.background}
-        >
-          <View style={styles.Firstheader}></View>
-        </ImageBackground>
-
+        <View style={styles.Firstheader}>
+          <Text></Text>
+        </View>
         <View style={[open ? styles.container : styles.containerClosed]}>
           <Animated.View
             style={[styles.sidebar, { transform: [{ translateX: slideAnim }] }]}
@@ -140,12 +122,12 @@ const SliderMenu = () => {
                 {open && (
                   <View style={styles.textHeader}>
                     <Text style={styles.name}>محل</Text>
-                    <Text style={styles.profession}>طاهر</Text>
+                    <Text style={styles.profession}>طارق</Text>
                   </View>
                 )}
               </View>
               <TouchableOpacity onPress={sliderFunction}>
-                <Image source={FlechIcon} style={styles.iconFlech} />
+                <Text style={styles.icon}>{open ? ">" : "<"}</Text>
               </TouchableOpacity>
             </View>
 
@@ -235,12 +217,8 @@ const SliderMenu = () => {
                 </TouchableOpacity>
               </View>
               <View style={styles.bottom}>
-                <TouchableOpacity
-                  style={styles.bottomLink}
-                  onPress={Display_WelcomPage}
-                >
-                  <Text style={styles.navText}>خروج</Text>
-                  <Image source={logoutIcon} style={styles.icon} />
+                <TouchableOpacity style={styles.bottomLink}>
+                  <Text style={styles.navText}>Logout</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -271,18 +249,13 @@ const SliderMenu = () => {
 export default SliderMenu;
 
 const styles = StyleSheet.create({
-  background: {
-    justifyContent: "flex-start",
-    alignItems: "center",
-    height: 50,
-  },
   Firstheader: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
     backgroundColor: "#333",
     height: 51,
-    justifyContent: "center",
+    borderBottomColor: "#fff",
+
+    borderBottomWidth: 0.9,
+    borderRadius: 5,
   },
   containerClosed: {
     position: "absolute",
@@ -305,7 +278,7 @@ const styles = StyleSheet.create({
     left: 0,
     height: "100%",
     width: 250,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#333",
     padding: 15,
   },
   header: {
@@ -327,11 +300,11 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   name: {
-    color: "black",
+    color: "#fff",
     fontWeight: "600",
   },
   profession: {
-    color: "black",
+    color: "#bbb",
   },
   icon: {
     fontSize: 24,
@@ -341,15 +314,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   searchBox: {
-    backgroundColor: "white",
+    backgroundColor: "#444",
     borderRadius: 6,
     marginBottom: 20,
     paddingHorizontal: 10,
-    borderRadius: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
   },
   searchInput: {
     color: "#fff",
@@ -361,35 +329,22 @@ const styles = StyleSheet.create({
   navLink: {
     paddingVertical: 15,
     paddingHorizontal: 10,
-    backgroundColor: "#87CEFA", // Light blue background
+    backgroundColor: "#555",
     marginBottom: 10,
-    borderRadius: 6, // Rounded corners
-    shadowColor: "#000", // Shadow color
-    shadowOpacity: 0.4, // Adjust opacity for visibility (0.3 -> 0.4 for stronger effect)
-    shadowOffset: { width: 2, height: 4 }, // Increase height offset to make shadow more prominent (2 -> 4)
-    shadowRadius: 4, // Add shadow blur for softness (lower values make sharper shadows)
-    elevation: 3, // Higher elevation for more prominent shadow (Android specific)
+    borderRadius: 6,
   },
-
   navText: {
-    color: "#000080",
+    color: "#fff",
     fontSize: 16,
   },
-  bottom: { marginTop: 140 },
+  bottom: {
+    marginTop: "auto",
+  },
   bottomLink: {
-    display: "flex",
-    flexDirection: "row",
-    justifyContent: "space-between",
     paddingVertical: 15,
     paddingHorizontal: 10,
-    backgroundColor: "#87CEFA",
+    backgroundColor: "#555",
     borderRadius: 6,
-    color: "000080",
-    shadowColor: "#000", // Shadow color
-    shadowOpacity: 0.4, // Adjust opacity for visibility (0.3 -> 0.4 for stronger effect)
-    shadowOffset: { width: 2, height: 4 }, // Increase height offset to make shadow more prominent (2 -> 4)
-    shadowRadius: 4, // Add shadow blur for softness (lower values make sharper shadows)
-    elevation: 3, // Higher elevation for more prominent shadow (Android specific)
   },
   openButton: {
     position: "absolute",
@@ -403,10 +358,5 @@ const styles = StyleSheet.create({
   icon: {
     width: 30, // Set width of the icon
     height: 30, // Set height of the icon
-  },
-
-  iconFlech: {
-    width: 38, // Set width of the icon
-    height: 38, // Set height of the icon
   },
 });

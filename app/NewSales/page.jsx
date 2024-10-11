@@ -363,8 +363,8 @@ function Sales() {
             ))}
           </Picker>
 
-          <Text style={styles.label}>الكمية</Text>
           <TextInput
+            placeholder="الكمية"
             keyboardType="number-pad"
             style={styles.input}
             value={quantity}
@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
   rowfist: {
     flexDirection: "row", // Align elements horizontally
     alignItems: "center", // Vertically align elements
-    justifyContent: "space-between", // Space elements evenly
+    justifyContent: "space-around", // Space elements evenly
     marginVertical: 10, // Add some vertical spacing
     padding: 10,
     backgroundColor: "#f5f5f5", // Background color for the row
@@ -417,14 +417,7 @@ const styles = StyleSheet.create({
     textAlign: "center", // Align the label text in the center
     marginRight: 10,
   },
-  picker: {
-    flex: 3, // Let the picker take up more space
-    backgroundColor: "#f0f0f0",
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: "#000", // Black border for the picker
-    marginRight: 10, // Add space between picker and other elements
-  },
+
   pickerm: {
     marginVertical: 10,
     flex: 1,
@@ -448,6 +441,7 @@ const styles = StyleSheet.create({
     borderColor: "#ccc", // Light border
     borderWidth: 1,
     borderRadius: 5,
+    marginRight: 10,
     paddingHorizontal: 10, // Add padding for better usability
     backgroundColor: "#f9f9f9", // Light background color
     textAlign: "center", // Center text in input
@@ -525,7 +519,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "rgba(0, 0, 0, 0.5)", // Dark transparent background
   },
-  pickeritem: {},
+  pickeritem: {
+    fontSize: 1, // Smaller font size for picker items
+    height: 30, // Adjust height for items
+  },
+  picker: {
+    flex: 3, // Let the picker take up more space
+    backgroundColor: "white",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "black",
+    marginRight: 10,
+  },
   NewClient: {
     marginTop: 10,
     backgroundColor: "black",

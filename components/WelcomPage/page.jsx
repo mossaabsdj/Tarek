@@ -6,9 +6,10 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ImageBackground,
 } from "react-native";
 import appicon from "@/assets/icons/app.png";
-
+import welcompageImage from "@/assets/images/welcom.jpg";
 const WelcomePage = ({ functionStart }) => {
   const handleGetStarted = () => {
     Alert.alert("أهلاً بك!", "لقد بدأت رحلتك."); // Display an alert when the button is pressed
@@ -49,25 +50,37 @@ const WelcomePage = ({ functionStart }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.welcomeText}>مرحبا بك في تطبيقنا</Text>
-      <Text style={styles.description}>
-        نحن سعداء بانضمامك إلينا. استعد لتجربة مميزة!
-      </Text>
-      <Text style={styles.dateText}>{getCurrentDateInArabic()}</Text>
-      <TouchableOpacity style={styles.button} onPress={functionStart}>
-        <Text style={styles.buttonText}>ابدأ الآن</Text>
-      </TouchableOpacity>
-    </View>
+    <ImageBackground
+      source={welcompageImage} // Local image or use a URL
+      style={styles.background}
+    >
+      <View style={styles.container}>
+        <Text style={styles.welcomeText}>مرحبا بك في تطبيقنا</Text>
+        <Text style={styles.description}>
+          نحن سعداء بانضمامك إلينا. استعد لتجربة مميزة!
+        </Text>
+        <Text style={styles.dateText}>{getCurrentDateInArabic()}</Text>
+        <TouchableOpacity style={styles.button} onPress={functionStart}>
+          <Text style={styles.buttonText}>ابدأ الآن</Text>
+        </TouchableOpacity>
+      </View>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
+  background: {
+    justifyContent: "flex-start",
+    alignItems: "center",
+    height: 700,
+  },
   container: {
+    marginTop: 100,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#f7f9fc",
     padding: 20,
+    borderRadius: 20,
   },
   welcomeText: {
     fontSize: 24,
@@ -89,7 +102,7 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   button: {
-    backgroundColor: "#6200ee",
+    backgroundColor: "#00BFFF",
     padding: 10,
     borderRadius: 5,
     width: "100%",

@@ -17,6 +17,7 @@ import {
   updateFactProdPlatDecrement,
   updateFactProdPlatIncrement,
 } from "@/app/Lib/bdd";
+
 import React, { useEffect, useState } from "react";
 import {
   Image,
@@ -31,13 +32,16 @@ import {
   View,
 } from "react-native";
 import Clienticon from "@/assets/icons/Client.png";
+import Deleteicon from "@/assets/icons/delete.png";
+import loopIcon from "@/assets/icons/search1.png";
+import editIcon from "@/assets/icons/edit.png";
 
 import { Picker } from "@react-native-picker/picker"; // Correctly import Picker
 import { useStoreRootState } from "expo-router/build/global-state/router-store";
 
 // Column names
 const columns = [
-  { key: "Nom", label: "اللقب" },
+  { key: "Nom", label: "الاسم واللقب" },
   { key: "Prenom", label: "الاسم" },
   { key: "Num", label: "رقم الهاتف " },
   { key: "creditMoney", label: " دين المال" },
@@ -205,7 +209,8 @@ const ClientConsultation = () => {
   };
   const Delete = async (client) => {
     await deleteClient(client.Client_ID);
-    await GetAll("Client", setClients);
+    await GetTotalCreditMoney();
+    await GetTotalCreditPlat();
   };
 
   const handelAddVersment = async () => {
@@ -265,31 +270,52 @@ const ClientConsultation = () => {
     VersmentFacture();
   };
   const renderClientItem = ({ item }) => (
-    <View style={styles.card}>
+    <View style={styles.CardClient}>
       <Text style={styles.title}>معلومات الزبون</Text>
-      {columns.map((column) => (
-        <Text style={styles.label} key={column.key}>
-          {column.label}: <Text style={styles.value}>{item[column.key]}</Text>
-        </Text>
-      ))}
+
+      <TouchableOpacity style={styles.delete} onPress={() => Delete(item)}>
+        <Image source={Deleteicon} style={styles.deleteicon} />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.edit}
+        onPress={() => handleModifyClient(item)}
+      >
+        <Image source={editIcon} style={styles.deleteicon} />
+      </TouchableOpacity>
+      <Text style={styles.label} key={columns[0].key}>
+        {columns[0].label}:{" "}
+        <Text style={styles.value}>{item.Nom + " " + item.Prenom}</Text>
+      </Text>
+
+      <Text style={styles.label} key={columns[2].key}>
+        {columns[2].label}: <Text style={styles.value}>{item.Num}</Text>
+      </Text>
+      <View style={styles.CardClientValues}>
+        <View>
+          <Text style={styles.label} key={columns[4].key}>
+            {columns[4].label}:
+          </Text>
+          <Text style={styles.value}>{item.creditOmbalage}</Text>
+        </View>
+        <View style={styles.infoCredit}>
+          <Text style={styles.TotalMoneyLabel} key={columns[3].key}>
+            {columns[3].label}
+          </Text>
+
+          <Text style={styles.TotalMoney}>{item.creditMoney + " DA"}</Text>
+        </View>
+      </View>
 
       {/* Button container to align buttons in a grid at the bottom */}
       <View style={styles.buttonContainer}>
         <Button
+          title=" متابعة ديون الاطباق "
+          onPress={() => handlePlatCredit(item)}
+        />
+        <Button
           title="متابعة ديون المال"
           onPress={() => GetFacturesMoney(item)}
         />
-        <Button
-          title="متابعة ديون الاطباق"
-          onPress={() => handlePlatCredit(item)}
-        />
-        <Button title="تعديل" onPress={() => handleModifyClient(item)} />
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => Delete(item)}
-        >
-          <Text style={styles.deleteButtonText}>حدف الزبون</Text>
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -428,8 +454,7 @@ const ClientConsultation = () => {
         } else {
           creditOmbalagee = creditOmbalagee + "\n";
         }
-        creditOmbalagee =
-          creditOmbalagee + cp.Plat + ":" + "{" + cp.Produit + "}  ";
+        creditOmbalagee = creditOmbalagee + cp.Plat + ":" + cp.Produit + "  ";
       });
       setClients((prevClients) =>
         prevClients.map(
@@ -449,27 +474,29 @@ const ClientConsultation = () => {
     const clientss = await GetAll("Client", setClients);
     for (let Client of clientss) {
       var creditMoney = 0;
-      var Arrayversment = [];
 
       const Factures = await GetClient_FacturesMoney(Client.Client_ID);
       for (let Fact of Factures) {
+        var Arrayversment = [];
+
         if (Fact) {
           const versment = await GetFacturesVersment(Fact.Facture_ID);
           // console.log("versment" + JSON.stringify(versment));
           if (versment) {
             for (let ver of versment) {
-              //  console.log();
+              console.log("versment" + JSON.stringify(versment));
               Arrayversment.push(ver.Somme);
             }
             var factversment = Arrayversment.reduce(
               (total, item) => total + item,
               0
             );
+            console.log("All Facture Versment" + factversment);
             if (factversment < Fact.Montant_Total) {
               //console.log(factversment + "===" + Fact.Montant_Total);
               creditMoney = creditMoney + (Fact.Montant_Total - factversment);
             }
-            // console.log("creditMoney" + creditMoney);
+            console.log("creditMoney" + creditMoney);
           }
         }
       }
@@ -635,16 +662,21 @@ const ClientConsultation = () => {
               alignItems: "center",
             }}
           >
-            <Text style={styles.header}>متابعة الزبائن </Text>
-            <Image source={Clienticon} style={styles.icon} />
+            <View style={styles.headerdiv}>
+              <Text style={styles.header}>متابعة الزبائن </Text>
+              <Image source={Clienticon} style={styles.icon} />
+            </View>
           </View>
           {/* Search Input */}
-          <TextInput
-            style={styles.searchInput}
-            placeholder="البحث عن الزبون بالاسم و اللقب...."
-            value={searchQuery}
-            onChangeText={handleSearch}
-          />
+          <View style={styles.searchInput}>
+            <TextInput
+              placeholder="البحث عن الزبون بالاسم و اللقب...."
+              value={searchQuery}
+              onChangeText={handleSearch}
+            />
+            <Image source={loopIcon} style={styles.iconloop} />
+          </View>
+
           {/* Client List */}
           <FlatList
             data={filteredClients}
@@ -702,24 +734,6 @@ const ClientConsultation = () => {
                   setEditClient({ ...editClient, Num: text })
                 }
                 placeholder="Phone Number"
-              />
-              <TextInput
-                style={styles.input}
-                value={String(editClient.creditMoney)}
-                keyboardType="numeric"
-                onChangeText={(text) =>
-                  setEditClient({ ...editClient, creditMoney: Number(text) })
-                }
-                placeholder="Credit Money"
-              />
-              <TextInput
-                style={styles.input}
-                value={String(editClient.creditOmbalage)}
-                keyboardType="numeric"
-                onChangeText={(text) =>
-                  setEditClient({ ...editClient, creditOmbalage: Number(text) })
-                }
-                placeholder="Credit Packaging"
               />
 
               <Button title="حفظ" onPress={handleSaveChanges} />
@@ -922,13 +936,26 @@ const ClientConsultation = () => {
 const styles = StyleSheet.create({
   container: {
     padding: 20,
-    backgroundColor: "#f5f5f5",
-    height: 600,
+    height: 570,
+    backgroundColor: "#F0F8FF",
   },
+
   header: {
     fontSize: 24,
     fontWeight: "bold",
     textAlign: "center",
+    color: "black",
+  },
+  headerdiv: {
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    height: 60,
+    width: 200,
+    backgroundColor: "#F0F8FF", // Light blue background
+    borderRadius: 20,
+    marginBottom: 8,
   },
   modalBackground: {
     flex: 1,
@@ -937,12 +964,19 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)", // Dark transparent background
   },
   searchInput: {
-    height: 40,
-    borderColor: "gray",
-    borderWidth: 1,
-    borderRadius: 5,
-    paddingHorizontal: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "white",
+    borderRadius: 6,
     marginBottom: 20,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+    height: 50,
   },
   card: {
     backgroundColor: "#fff",
@@ -954,11 +988,57 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 10,
+  CardClient: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 15,
+    shadowColor: "#000",
+    shadowOpacity: 0.2, // Adjust this for shadow visibility
+    shadowOffset: { width: 0, height: 2 }, // Offset for a balanced shadow effect
+    shadowRadius: 6, // Spread of the shadow
+    elevation: 4, // Elevation for Android
   },
+
+  CardClientValues: {
+    flexDirection: "row", // Aligns columns horizontally
+    flexWrap: "wrap", // Ensures rows wrap into multiple lines
+    justifyContent: "space-between", // Adds space between columns
+  },
+  infoCredit: {
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignSelf: "flex-end",
+    width: 100,
+    height: 50,
+    borderRadius: 10,
+    backgroundColor: "#F08080",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  TotalMoneyLabel: {
+    fontSize: 10,
+    color: "white",
+    fontWeight: "bold",
+  },
+  TotalMoney: {
+    alignSelf: "center",
+    justifyContent: "center",
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 18,
+  },
+  TotalPlat: {
+    alignSelf: "center",
+    justifyContent: "center",
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 18,
+  },
+
   label: {
     fontSize: 16,
     marginBottom: 5,
@@ -1020,7 +1100,7 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   title: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: "bold",
     marginBottom: 10,
     textAlign: "center",
@@ -1034,18 +1114,19 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     flexDirection: "row",
-    flexWrap: "wrap", // Allows buttons to wrap onto the next row if necessary
-    justifyContent: "space-between", // Distribute buttons evenly
+    justifyContent: "space-between",
+    width: "100%",
     marginTop: 10,
   },
-  deleteButton: {
-    marginTop: 10,
-
-    backgroundColor: "red",
-    padding: 10,
-    borderRadius: 5,
-    flex: 1, // Takes up space in the row
-    marginLeft: 5,
+  delete: {
+    position: "absolute",
+    top: 5,
+    left: 5,
+  },
+  edit: {
+    position: "absolute",
+    top: 5,
+    right: 5,
   },
   deleteButtonText: {
     color: "white",
@@ -1066,10 +1147,10 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   deleteButton: {
+    backgroundColor: "white",
     display: "flex",
     justifyContent: "center",
     width: 280,
-    backgroundColor: "red",
     padding: 10,
     borderRadius: 5,
     marginTop: 10,
@@ -1084,6 +1165,19 @@ const styles = StyleSheet.create({
   icon: {
     width: 30, // Set width of the icon
     height: 30, // Set height of the icon
+  },
+  deleteicon: {
+    width: 25, // Set width of the icon
+    height: 25, // Set height of the icon
+  },
+  iconmoney: {
+    width: 20, // Set width of the icon
+    height: 20, // Set height of the icon
+  },
+  iconloop: {
+    width: 20, // Set width of the icon
+    height: 20, // Set height of the icon
+    zIndex: 1000,
   },
 });
 
