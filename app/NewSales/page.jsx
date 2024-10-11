@@ -12,6 +12,7 @@ import {
   Alert,
 } from "react-native";
 import {
+  getProduiNomby_ID,
   GetAll,
   addClient,
   addFacture,
@@ -19,6 +20,7 @@ import {
   addVersment,
   getClientByName,
   getProduitStatusByNom,
+  addVersmentPlat,
 } from "@/app/Lib/bdd";
 import { Picker } from "@react-native-picker/picker"; // Correctly import Picker
 import FactTable from "@/components/FactTable/page";
@@ -26,9 +28,12 @@ import { useEffect } from "react";
 function Sales() {
   const Thead = ["المجموع", "الكمية", "السعر", "الاسم"];
 
-  const [products, setproduct] = useState([{}]);
-  const [Status, setStatus] = useState([{ S: "s" }]);
+  const [selectedProduct, setSelectedProduct] = useState();
+  const [SelectedproductsPlatNom, setSelectedproductsPlatNom] = useState();
 
+  const [products, setproduct] = useState([]);
+  const [Status, setStatus] = useState([{ S: "s" }]);
+  const [NbrPlat, setNbrPlat] = useState("0");
   const [client, setclient] = useState([{}]);
   const [nom, setnom] = useState("");
   const [prenom, setprenom] = useState("");
@@ -197,16 +202,71 @@ function Sales() {
       }
     }
     console.log(ids);
-    if (paymentAmount === "" || paymentAmount === 0) {
-      console.log("nes pase add versment");
-    } else {
-      console.log("paymentAmount" + paymentAmount);
+
+    console.log("paymentAmount" + paymentAmount);
+    if (paymentAmount > 0) {
       const ver = await addVersment(Facture_ID, paymentAmount);
       console.log(JSON.stringify(ver));
+    }
+    if (NbrPlat > 0) {
+      await addVersmentPlat(Facture_ID, selectedProduct, NbrPlat);
     }
 
     setRows([]);
     setVersment_Money(false);
+  };
+  async function GetNom(id) {
+    const r = await getProduiNomby_ID(id);
+    const Nom = r.Nom;
+    console.log(Nom);
+
+    setSelectedproductsPlatNom(Nom);
+  }
+  useEffect(() => {
+    if (!selectedProduct || selecteClient === 0) {
+    } else {
+      GetNom(selectedProduct);
+    }
+  }, [selectedProduct]);
+  const handleVersments = () => {
+    console.log("selected" + selectedProduct);
+    if (NbrPlat === "0") {
+      Alert.alert(
+        "تأكيد الدفع",
+        "المبلغ:" + paymentAmount + "عدد الأطباق" + NbrPlat + " ",
+
+        [
+          { text: "إلغاء", style: "cancel" },
+          {
+            text: "تأكيد",
+            onPress: () => handleValider(),
+            style: "destructive",
+          },
+        ],
+        { cancelable: true }
+      );
+    } else if (!selectedProduct || selecteClient === 0) {
+      Alert.alert("الرجاء اختبار نوع الطبق ", "او ارجاع عدد الأطباق 0");
+    } else {
+      Alert.alert(
+        "تأكيد الدفع",
+        "المبلغ:" +
+          paymentAmount +
+          "عدد الأطباق" +
+          NbrPlat +
+          " " +
+          SelectedproductsPlatNom,
+        [
+          { text: "إلغاء", style: "cancel" },
+          {
+            text: "تأكيد",
+            onPress: () => handleValider(),
+            style: "destructive",
+          },
+        ],
+        { cancelable: true }
+      );
+    }
   };
 
   useEffect(() => {
@@ -246,7 +306,8 @@ function Sales() {
           onRequestClose={() => setVersment_Money(false)}
         >
           <View style={styles.modalBackgroundVersment}>
-            <View style={styles.modalViewVersment}>
+            <View style={styles.modalContainerr}>
+              <Text style={styles.modalTitle}>المبلغ</Text>
               <TextInput
                 style={styles.inputversment}
                 keyboardType="numeric"
@@ -254,13 +315,43 @@ function Sales() {
                 value={paymentAmount}
                 onChangeText={setpaymentAmount}
               />
+              <Text style={styles.modalTitle}>الأطباق</Text>
 
-              <Button title="تأكيد الدفع" onPress={handleValider} />
-              <Button
-                title="الغاء"
-                onPress={() => setVersment_Money(false)}
-                color="red"
+              <Picker
+                selectedValue={selectedProduct}
+                style={styles.pickerV}
+                onValueChange={(itemValue) => setSelectedProduct(itemValue)}
+              >
+                <Picker.Item
+                  key={0}
+                  label={"اختر نوع الطبق"}
+                  value={0} // Use product name as value
+                />
+                {products.map((product) => (
+                  <Picker.Item
+                    key={product.Nom}
+                    label={product.Nom}
+                    value={product.Produit_ID} // Use product name as value
+                  />
+                ))}
+              </Picker>
+
+              <TextInput
+                style={styles.inputversment}
+                keyboardType="numeric"
+                placeholder="عدد الأطباق...."
+                value={NbrPlat}
+                onChangeText={setNbrPlat}
               />
+
+              <View style={styles.buttonContainer}>
+                <Button title="تأكيد الدفع" onPress={handleVersments} />
+                <Button
+                  title="الغاء"
+                  onPress={() => setVersment_Money(false)}
+                  color="red"
+                />
+              </View>
             </View>
           </View>
         </Modal>
@@ -507,7 +598,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 20,
     width: 300,
-    height: 250,
+    height: "90%",
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 2 },
@@ -537,6 +628,42 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 2,
     borderRadius: 20,
+  },
+  modalContainerr: {
+    height: "400", // Adjust height according to content
+    width: "90%",
+    padding: 20,
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+    elevation: 5,
+    alignItems: "center", // Center align items in modal
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 20,
+    textAlign: "center",
+    color: "#333", // Dark color for better contrast
+  },
+  pickerV: {
+    backgroundColor: "white",
+    width: 200,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 2,
+    elevation: 5,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between", // Space out buttons evenly
+    marginTop: 20, // Space above buttons
+    width: "100%", // Full width for buttons
   },
 });
 

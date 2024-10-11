@@ -2,7 +2,7 @@ import * as SQLite from "expo-sqlite";
 import * as FileSystem from "expo-file-system";
 import { Asset } from "expo-asset";
 // Open or create the database named 'tarek'
-const db = SQLite.openDatabaseAsync("tarek10.db");
+const db = SQLite.openDatabaseAsync("tarek13.db");
 
 async function creatAll(params) {
   try {
@@ -13,7 +13,9 @@ async function creatAll(params) {
     console.log("Journal mode set to WAL.");
 
     // Await each table creation function to ensure they execute in sequence
+
     await CreatTable();
+    await createExpensesTable();
     await createEmployeeTable();
     await createClientTable();
     await createFactureTable();
@@ -186,6 +188,23 @@ const alterFactureTable = async () => {
     console.log("Columns added to 'facture' table successfully.");
   } catch (error) {
     console.error("Error altering 'facture' table:", error);
+  }
+};
+const createExpensesTable = async () => {
+  try {
+    await (
+      await db
+    ).execAsync(`
+      CREATE TABLE IF NOT EXISTS Expenses (
+        Expense_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+        Description TEXT NOT NULL,
+        Amount REAL NOT NULL,
+        Date DATE DEFAULT (datetime('now', 'localtime'))
+      );
+    `);
+    console.log("Table 'Expenses' created successfully.");
+  } catch (error) {
+    console.error("Error creating 'Expenses' table:", error);
   }
 };
 
@@ -1130,6 +1149,48 @@ const deleteVersmentPlat2 = async (VersmentPlat_ID) => {
     console.error("Error deleting Versmentlat entry:", error);
   }
 };
+//expenses Table----------------------------------------
+// Expenses Table----------------------------------------
+const addExpense = async (description, amount) => {
+  if (description == null || description.trim() === "") {
+    console.error("Error: 'Description' cannot be null, undefined, or empty.");
+    return;
+  }
+  if (amount == null || isNaN(amount)) {
+    console.error("Error: 'Amount' must be a valid number.");
+    return;
+  }
+
+  try {
+    await (
+      await db
+    ).execAsync(`
+      INSERT INTO Expenses (Description, Amount) 
+      VALUES ('${description}', ${amount});
+    `);
+    console.log("Expense added successfully.");
+  } catch (error) {
+    console.error("Error adding expense:", error.message);
+    console.error("Stack Trace:", error.stack);
+  }
+};
+
+const deleteExpense = async (expenseId) => {
+  try {
+    await (
+      await db
+    ).runAsync(
+      `
+      DELETE FROM Expenses 
+      WHERE Expense_ID = ?;
+    `,
+      [expenseId]
+    );
+    console.log("Expense deleted successfully.");
+  } catch (error) {
+    console.error("Error deleting expense:", error);
+  }
+};
 
 //--------------------------------------------------------------
 module.exports = {
@@ -1201,4 +1262,6 @@ module.exports = {
   GetFacturesWithClientName,
   Get_ALL_Factures_Factprod,
   getClientByName,
+  addExpense,
+  deleteExpense,
 };

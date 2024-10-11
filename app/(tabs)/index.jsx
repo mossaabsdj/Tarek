@@ -32,6 +32,7 @@ import {
   createVersmentTable,
   createCreditEmployeeTable,
   createVersmentPlatTable,
+  createExpensesTable,
 } from "@/app/Lib/bdd";
 export default function HomeScreen() {
   const [firstTime, setfirstTime] = useState(true);

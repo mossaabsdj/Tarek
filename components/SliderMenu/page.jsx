@@ -21,7 +21,7 @@ import Clienticon from "@/assets/icons/Client.png";
 import Salesicon from "@/assets/icons/Sales.png";
 import img from "@/assets/images/icon.png";
 import header from "@/assets/images/header.jpg";
-
+import IconExpenses from "@/assets/icons/spending.png";
 import Icon from "react-native-vector-icons/FontAwesome";
 import Sales from "@/app/NewSales/page";
 import Client from "@/app/Client/page";
@@ -29,13 +29,14 @@ import Produit from "@/app/Produit/page";
 import WelcomPage from "@/components/WelcomPage/page";
 import Enployee from "@/app/Employe/page";
 import Facture from "@/app/Factures/page";
+import Expenses from "@/app/Expenses/page";
 const { width: screenWidth } = Dimensions.get("window");
 
 const SliderMenu = () => {
   const [open, setOpen] = useState(false);
   const slideAnim = useRef(new Animated.Value(screenWidth * 0.9)).current; // Use 80% of screen width
   const [WelcomPaged, setWelcomPaged] = useState(true);
-
+  const [ExpensesPage, setExpensesPage] = useState(false);
   const [SalesPage, setSales] = useState(false);
   const [EnployeePage, setEnployee] = useState(false);
   const [ClientPage, setClient] = useState(false);
@@ -68,10 +69,12 @@ const SliderMenu = () => {
     setFactures(false);
     setEnployee(false);
     setProduit(false);
+    setExpensesPage(false);
     sliderFunction();
   };
   const Display_Enployee = () => {
     setWelcomPaged(false);
+    setExpensesPage(false);
 
     setSales(false);
     setClient(false);
@@ -82,6 +85,7 @@ const SliderMenu = () => {
   };
   const Display_Client = () => {
     setWelcomPaged(false);
+    setExpensesPage(false);
 
     setSales(false);
     setClient(true);
@@ -92,6 +96,7 @@ const SliderMenu = () => {
   };
   const Display_Produit = () => {
     setWelcomPaged(false);
+    setExpensesPage(false);
 
     setSales(false);
     setClient(false);
@@ -102,6 +107,7 @@ const SliderMenu = () => {
   };
   const Display_Factures = () => {
     setWelcomPaged(false);
+    setExpensesPage(false);
 
     setSales(false);
     setClient(false);
@@ -117,6 +123,19 @@ const SliderMenu = () => {
     setFactures(false);
     setEnployee(false);
     setProduit(false);
+    setExpensesPage(false);
+
+    sliderFunction();
+  };
+  const Display_ExpensesPage = () => {
+    setWelcomPaged(false);
+    setSales(false);
+    setClient(false);
+    setFactures(false);
+    setEnployee(false);
+    setProduit(false);
+    setExpensesPage(true);
+
     sliderFunction();
   };
 
@@ -217,7 +236,21 @@ const SliderMenu = () => {
                     <Image source={FactureIcon} style={styles.icon} />
                   </View>
                 </TouchableOpacity>
-
+                <TouchableOpacity
+                  onPress={Display_ExpensesPage}
+                  style={styles.navLink}
+                >
+                  <View
+                    style={{
+                      display: "flex",
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Text style={styles.navText}>المصاريف</Text>
+                    <Image source={IconExpenses} style={styles.icon} />
+                  </View>
+                </TouchableOpacity>
                 <TouchableOpacity
                   onPress={Display_Produit}
                   style={styles.navLink}
@@ -263,6 +296,7 @@ const SliderMenu = () => {
         {ProduitPage && <Produit />}
         {FacturesPage && <Facture />}
         {EnployeePage && <Enployee />}
+        {ExpensesPage && <Expenses />}
       </View>
     </View>
   );
@@ -375,7 +409,7 @@ const styles = StyleSheet.create({
     color: "#000080",
     fontSize: 16,
   },
-  bottom: { marginTop: 140 },
+  bottom: { marginTop: 60 },
   bottomLink: {
     display: "flex",
     flexDirection: "row",

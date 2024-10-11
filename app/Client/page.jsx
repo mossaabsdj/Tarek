@@ -222,18 +222,15 @@ const ClientConsultation = () => {
   };
   const handelAddVersmentPlat = async () => {
     console.log(produit, selectedFacture, selectedProduct, NbrPlat);
-    const r = await updateFactProdPlatDecrement(
-      selectedFacture,
-      selectedProduct,
-      NbrPlat
-    );
-    console.log(JSON.stringify(r));
-    if (r.changes > 0) {
+    if (!NbrPlat) {
+      Alert.alert("الرجاء ادخال عدد الأطباق");
+    } else if (!selectedProduct) {
+      Alert.alert("الرجاء اختيار نوع الأطباق");
+    } else {
       await addVersmentPlat(selectedFacture, selectedProduct, NbrPlat);
       setVersment_Plat(false);
-    } else {
-      Alert.alert("لقد  ارجعت عدد اكبر من الدين");
     }
+
     // VersmentFacturePlat();
     handlePlatCredit(editClient);
   };
@@ -244,13 +241,8 @@ const ClientConsultation = () => {
       versmentPlat.Plat,
       versmentPlat.VersmentPlat_ID
     );
-    await updateFactProdPlatIncrement(
-      versmentPlat.Facture_ID,
-      versmentPlat.Produit_ID,
-      versmentPlat.Plat
-    );
+
     await deleteVersmentPlat2(versmentPlat.VersmentPlat_ID);
-    await updateFactureValiderPlat(versmentPlat.Facture_ID, 0);
     await VersmentFacturePlat();
   }
   async function VersmentFacture() {
@@ -266,7 +258,6 @@ const ClientConsultation = () => {
   const DeleteVersment = async (versment) => {
     console.log(versment.Versment_ID);
     deleteVersment(versment.Versment_ID);
-    updateFactureValiderMoney(versment.Facture_ID, 0);
     VersmentFacture();
   };
   const renderClientItem = ({ item }) => (
@@ -426,7 +417,7 @@ const ClientConsultation = () => {
     const clientss = await GetAll("Client", setClients);
     for (let Client of clientss) {
       var CreditPlat = [];
-
+      var VersmentPlat = [];
       const Factures = await GetClient_FacturesPlat(Client.Client_ID);
       for (let Fact of Factures) {
         if (Fact) {
@@ -447,9 +438,59 @@ const ClientConsultation = () => {
             }
           }
         }
+        const Versments = await GetFacturesVersmentPlat(Fact.Facture_ID);
+        if (Versments) {
+          for (let vers of Versments) {
+            var nom = await getProduiNomby_ID(vers.Produit_ID);
+            if (nom) {
+              var object = { Produit: nom.Nom, Plat: vers.Plat };
+              const existingProduct = VersmentPlat.find(
+                (item) => item.Produit === nom.Nom
+              ); // Check if the product exists
+              if (existingProduct) {
+                existingProduct.Plat += vers.Plat;
+              } else {
+                VersmentPlat.push(object);
+              }
+            }
+          }
+        }
       }
+      console.log(
+        "Verment:" +
+          JSON.stringify(VersmentPlat) +
+          "Credit Plat" +
+          JSON.stringify(CreditPlat)
+      );
+      // Function to find the Plat value of a specific product
+      const findPlatValue = (array, productName) => {
+        const product = array.find((item) => item.Produit === productName);
+        return product ? product.Plat : 0; // Return 0 if product not found
+      };
+
+      // Final result array
+      const finalResults = [];
+
+      // Calculate the difference for each product in CreditPlat
+      CreditPlat.forEach((credit) => {
+        const productName = credit.Produit;
+        const creditPlat = credit.Plat;
+        const versementPlat = findPlatValue(VersmentPlat, productName);
+
+        // Calculate the difference
+        const difference = creditPlat - versementPlat;
+
+        // Push the result into the final array
+        finalResults.push({
+          Produit: productName,
+          Plat: difference,
+          vrsment: versementPlat,
+          credit: creditPlat,
+        });
+      });
+
       var creditOmbalagee = "\n";
-      CreditPlat.map((cp, i) => {
+      finalResults.map((cp, i) => {
         if (i === 0) {
         } else {
           creditOmbalagee = creditOmbalagee + "\n";
@@ -538,11 +579,6 @@ const ClientConsultation = () => {
 
         if (factversment < Fact.Montant_Total) {
           RestFacture = Fact.Montant_Total - factversment;
-        } else if (
-          factversment === Fact.Montant_Total ||
-          factversment > Fact.Montant_Total
-        ) {
-          const r = await updateFactureValiderMoney(Fact.Facture_ID, 1);
         }
       }
       setFactures((prevFactures) =>
@@ -596,9 +632,6 @@ const ClientConsultation = () => {
         });
       }
 
-      if (creditOmbalagee === "") {
-        const r = await updateFactureValiderPlat(Fact.Facture_ID, 1);
-      }
       setFacturesplat((prevFactures) =>
         prevFactures.map(
           (cl) =>
@@ -1147,7 +1180,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   deleteButton: {
-    backgroundColor: "white",
+    backgroundColor: "red",
     display: "flex",
     justifyContent: "center",
     width: 280,
