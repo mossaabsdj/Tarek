@@ -17,10 +17,10 @@ import {
   addClient,
   addFacture,
   addFactProd,
-  addVersment,
   getClientByName,
   getProduitStatusByNom,
   addVersmentPlat,
+  addVersment,
   GetClient_FacturesMoney,
   GetFacturesVersment,
 } from "@/app/Lib/bdd";
@@ -156,10 +156,10 @@ function Sales() {
     const Montant_total = rows.reduce((total, item) => total + item.Sum, 0);
     if (Montant_total > 0) {
       for (let r of rows) {
-        console.log(rows);
-        console.log(r.Nom);
+        //  console.log(rows);
+        // console.log(r.Nom);
         const Statu = await getProduitStatusByNom(r.Nom, setStatus);
-        console.log("return this ===" + JSON.stringify(Statu.Return));
+        //  console.log("return this ===" + JSON.stringify(Statu.Return));
         if (Statu.Return === "true") {
           plat = plat + parseInt(r.Quantite);
         }
@@ -176,7 +176,7 @@ function Sales() {
         false,
         plat
       );
-      // console.log("r" + Facture_ID);
+      console.log("Facture_ID" + Facture_ID);
       var ids = [];
       for (let r of rows) {
         let plat2 = 0;
@@ -198,15 +198,20 @@ function Sales() {
       for (let vp of versments) {
         await addVersmentPlat(Facture_ID, vp.Produit_ID, vp.Plat);
       }
-      for (let vm of VersmentsMoney) {
-        await addVersment(Facture_ID, vm);
-      }
+      var factversment = VersmentsMoney.reduce(
+        (total, item) => total + item,
+        0
+      );
+
+      const r = await addVersment(Facture_ID, factversment);
+      console.log("r" + JSON.stringify(r));
+
       setRows([]);
     } else {
       Alert.alert("الرجاء ملأ الفاتورة");
     }
   };
-  const addVersment = async () => {
+  const addVersment_tolist = async () => {
     if (paymentAmount > 0) {
       //  const ver = await addVersment(Facture_ID, paymentAmount);
       //console.log(JSON.stringify(ver));
@@ -276,7 +281,7 @@ function Sales() {
           { text: "إلغاء", style: "cancel" },
           {
             text: "تأكيد",
-            onPress: () => addVersment(),
+            onPress: () => addVersment_tolist(),
             style: "destructive",
           },
         ],
@@ -297,7 +302,7 @@ function Sales() {
           { text: "إلغاء", style: "cancel" },
           {
             text: "تأكيد",
-            onPress: () => addVersment(),
+            onPress: () => addVersment_tolist(),
             style: "destructive",
           },
         ],
@@ -695,7 +700,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 20,
+    marginBottom: 0,
     textAlign: "center",
     color: "#333", // Dark color for better contrast
   },

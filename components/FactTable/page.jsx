@@ -218,13 +218,11 @@ export default function SpanningTable({
     setPlatVersment(Versments);
   }, [Versments]);
   useEffect(() => {
-    console.log("VersmentsMoney" + VersmentsMoney);
     if (VersmentsMoney != 0) {
       var factversment = VersmentsMoney.reduce(
         (total, item) => total + Number(item),
         0
       );
-      console.log("Total" + factversment);
 
       setMoneyVersment(factversment);
     } else {
@@ -254,9 +252,6 @@ export default function SpanningTable({
     GetFacturTotalPlat();
   }, [rows]);
   useEffect(() => {
-    console.log(
-      "AncientcreditPlat_Object" + JSON.stringify(AncientcreditPlat_Object)
-    );
     const newobject = AncientcreditPlat_Object.map((obj) => ({ ...obj }));
     newobject.map((m) => {
       delete m.vrsment;
@@ -307,48 +302,52 @@ export default function SpanningTable({
   }, [TotalPlatObject]);
   useEffect(() => {
     const newobject = NewcreditPlatObject.map((obj) => ({ ...obj }));
+    if (!PlatVersment[0]) {
+      console.log;
+      setRestcreditPlat(NewcreditPlat);
+    } else {
+      PlatVersment.map((tp) => {
+        const existingProductIndex = newobject.findIndex(
+          (item) => item.Produit === tp.Nom
+        );
 
-    PlatVersment.map((tp) => {
-      const existingProductIndex = newobject.findIndex(
-        (item) => item.Produit === tp.Nom
-      );
-
-      // Ensure newobject is an array and initialize it if necessary
-      if (!Array.isArray(newobject)) {
-        newobject = [];
-      }
-
-      if (existingProductIndex !== -1) {
-        // Ensure newobject[existingProductIndex] exists before accessing .Plat
-        if (!newobject[existingProductIndex]) {
-          newobject[existingProductIndex] = { Produit: tp.Nom, Plat: 0 }; // Initialize the product object
+        // Ensure newobject is an array and initialize it if necessary
+        if (!Array.isArray(newobject)) {
+          newobject = [];
         }
 
-        console.log(
-          "traitment-----" +
-            newobject[existingProductIndex].Plat +
-            "---" +
-            Number(tp.Plat)
-        );
-        newobject[existingProductIndex].Plat -= Number(tp.Plat);
-      } else {
-        newobject.push({ Produit: tp.Nom, Plat: tp.Plat });
-      }
-    });
+        if (existingProductIndex !== -1) {
+          // Ensure newobject[existingProductIndex] exists before accessing .Plat
+          if (!newobject[existingProductIndex]) {
+            newobject[existingProductIndex] = { Produit: tp.Nom, Plat: 0 }; // Initialize the product object
+          }
 
-    // setRestcreditPlat(newobject);
-    var creditOmbalagee = "\n";
-    newobject.map((cp, i) => {
-      if (i === 0) {
-      } else {
-        creditOmbalagee = creditOmbalagee + "\n";
-      }
-      creditOmbalagee = creditOmbalagee + cp.Plat + ":" + cp.Produit + "  ";
-    });
-    setRestcreditPlat(creditOmbalagee);
+          console.log(
+            "traitment-----" +
+              newobject[existingProductIndex].Plat +
+              "---" +
+              Number(tp.Plat)
+          );
+          newobject[existingProductIndex].Plat -= Number(tp.Plat);
+        } else {
+          newobject.push({ Produit: tp.Nom, Plat: tp.Plat });
+        }
+      });
+
+      // setRestcreditPlat(newobject);
+      var creditOmbalagee = "\n";
+      newobject.map((cp, i) => {
+        if (i === 0) {
+        } else {
+          creditOmbalagee = creditOmbalagee + "\n";
+        }
+        creditOmbalagee = creditOmbalagee + cp.Plat + ":" + cp.Produit + "  ";
+      });
+      setRestcreditPlat(creditOmbalagee);
+    }
 
     // Check if the product already exists in the rows
-  }, [PlatVersment]);
+  }, [PlatVersment, NewcreditPlat]);
 
   const handleInputChange = (rowIndex, colName, value) => {
     const updatedRows = [...rows];
@@ -392,13 +391,14 @@ export default function SpanningTable({
   };
   const scrollToBottom = () => {
     if (scrollViewRef.current) {
-      scrollViewRef.current.scrollToEnd({ animated: true });
+      //   scrollViewRef.current.scrollToEnd({ animated: true });
     }
   };
   const invoiceSubtotal = subtotal(rows);
-  const print = async () => {
+  const printFacture = async () => {
     try {
-      const htmll = `
+      await printCredit();
+      const htmlFacture = `
       <html>
         <head>
           <style>
@@ -414,7 +414,7 @@ export default function SpanningTable({
               box-sizing: border-box;
             }
             h1 {
-              font-size: 3em; /* Title smaller for a thermal receipt look */
+              font-size: 3em; 
               text-align: center;
               margin-bottom: 10px;
             }
@@ -436,8 +436,6 @@ export default function SpanningTable({
               justify-content: space-between;
               align-items: center;
               padding: 0 10px;
-              padding-bottom: 5px;
-              margin-right:80px;
             }
             .items {
               font-size: 2em;
@@ -449,7 +447,6 @@ export default function SpanningTable({
               padding: 5px 0;
               display: flex;
               justify-content: space-between;
-              margin-bottom: 40px;
             }
             .item span {
               text-align: center;
@@ -463,91 +460,11 @@ export default function SpanningTable({
               margin-top: 10px;
               text-align: center;
             }
-            .footer {
-              margin-top: 10px;
-              font-size: 2.5em;
-              text-align: center;
-            }
-
-            /* Styled Credit Section */
-            .credits {
-              margin-top: 20px;
-              font-size: 1.8em;
-              text-align: right;
-              padding: 0 10px;
-            }
-            .credit-row {
-              padding: 5px 0;
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              border-bottom: 1px dashed #000;
-            }
-            .credit-label {
-              font-weight: bold;
-              font-size: 1.6em;
-              width: 45%;
-              text-align: left;
-            }
-            .credit-value {
-              font-size: 1.6em;
-              width: 55%;
-              text-align: right;
-            }
-              .credits {
-  font-size: 1.8em;
-  margin-top: 20px;
-  text-align: right;
-  padding: 0 10px;
-}
-
-.credit-section {
-  margin-bottom: 10px;
-}
-
-.credit-title {
-  font-weight: bold;
-  font-size: 2em;
-  margin-bottom: 5px;
-}
-
-.credit-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 5px 0;
-  border-bottom: 1px dashed #000;
-}
-
-.credit-label {
-  font-weight: bold;
-  font-size: 1.6em;
-  width: 40%;
-  text-align: left;
-}
-
-.credit-value {
-  font-size: 1.6em;
-  width: 60%;
-  text-align: right;
-}
-
-.separator {
-  text-align: center;
-  font-size: 2em;
-  margin: 10px 0;
-}
-
           </style>
         </head>
         <body>
           <div class="ticket">
-            <h1>RECEIPT</h1>
-            <div class="header">
-              قلب اللوز طاهر
-            </div>
-
-            <div class="separator">- - - - - - - - - - - - - - - - - - - - - -</div>
+            <div class="header">قلب اللوز طاهر</div>
 
             <div class="date-client">
               <div>${new Date().toLocaleDateString("fr-FR")}</div>
@@ -557,6 +474,13 @@ export default function SpanningTable({
             <div class="separator">- - - - - - - - - - - - - - - - - - - - - -</div>
 
             <div class="items">
+              <div class="item">
+                <span>الرقم</span>
+                <span>المنتج</span>
+                <span>السعر</span>
+                <span>الكمية</span>
+                <span>المجموع</span>
+              </div>
               ${rows
                 .map(
                   (row, index) => `
@@ -574,94 +498,119 @@ export default function SpanningTable({
 
             <div class="separator">- - - - - - - - - - - - - - - - - - - - - -</div>
 
-            <div class="total">
-              المجموع: ${invoiceSubtotal}.00DA
-            </div>
-
-            <div class="separator">- - - - - - - - - - - - - - - - - - - - - -</div>
-<div class="credits">
-  <!-- Previous Debts -->
-  <div class="credit-section">
-    <div class="credit-title">الديون السابقة</div>
-    <div class="credit-row">
-      <div class="credit-label">المال:</div>
-      <div class="credit-value">${Ancientcreditmoney}</div>
-    </div>
-    <div class="credit-row">
-      <div class="credit-label">الأطباق:</div>
-      <div class="credit-value">${AncientcreditPlat}</div>
-    </div>
-  </div>
-
-  <!-- Separator -->
-  <div class="separator">- - - - - - - - - - - - - - - - - - - - - -</div>
-
-  <!-- New Debts -->
-  <div class="credit-section">
-    <div class="credit-title">الديون الجديدة</div>
-    <div class="credit-row">
-      <div class="credit-label">المال:</div>
-      <div class="credit-value">${Newcreditmoney}</div>
-    </div>
-    <div class="credit-row">
-      <div class="credit-label">الأطباق:</div>
-      <div class="credit-value">${NewcreditPlat}</div>
-    </div>
-  </div>
-
-  <!-- Separator -->
-  <div class="separator">- - - - - - - - - - - - - - - - - - - - - -</div>
-
-  <!-- Payments -->
-  <div class="credit-section">
-    <div class="credit-title">الدفعات</div>
-    <div class="credit-row">
-      <div class="credit-label">المال:</div>
-      <div class="credit-value">${MoneyVersment}DA</div>
-    </div>
-  </div>
-
-  <!-- Separator -->
-  <div class="separator">- - - - - - - - - - - - - - - - - - - - - -</div>
-
-  <!-- Itemized Versments -->
-  <div class="credit-section">
-    ${Versments.map(
-      (item, index) => `
-      <div class="credit-row">
-        <div class="credit-label">الأطباق</div>
-        <div class="credit-value">${item.Nom} - ${item.Plat}</div>
-      </div>
-    `
-    ).join("")}
-  </div>
-
-  <!-- Separator -->
-  <div class="separator">- - - - - - - - - - - - - - - - - - - - - -</div>
-
-  <!-- Remaining Debts -->
-  <div class="credit-section">
-    <div class="credit-title">الباقي</div>
-    <div class="credit-row">
-      <div class="credit-label">المال:</div>
-      <div class="credit-value">${Restcreditmoney}</div>
-    </div>
-    <div class="credit-row">
-      <div class="credit-label">الأطباق:</div>
-      <div class="credit-value">${RestcreditPlat}</div>
-    </div>
-  </div>
-</div>
-
+            <div class="total">المجموع: ${invoiceSubtotal}.00DA</div>
+          </div>
         </body>
       </html>
     `;
 
       await Print.printAsync({
-        html: htmll,
+        html: htmlFacture,
       });
     } catch (error) {
-      console.error("Error printing: ", error);
+      console.error("Error printing facture: ", error);
+    }
+  };
+
+  const printCredit = async () => {
+    try {
+      const htmlCredit = `
+      <html>
+        <head>
+          <style>
+            body {
+              font-family: Tahoma, Arial, sans-serif;
+              margin: 0;
+              padding: 0;
+              direction: rtl;
+            }
+            .credits {
+              font-size: 1.8em;
+              text-align: right;
+              padding: 0 10px;
+            }
+            table {
+              width: 100%;
+              font-size: 1.3em;
+              border-collapse: collapse;
+              border: 1px dashed #000;
+            }
+            td, th {
+              padding: 5px;
+              border-bottom: 1px dashed #000;
+            }
+            .credit-title {
+              font-weight: bold;
+              font-size: 1.5em;
+              text-align: center;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="credits">
+            <table>
+              ${[
+                {
+                  title: "الديون السابقة",
+                  items: [
+                    { label: "المال", value: `${Ancientcreditmoney} DA` },
+                    { label: "الأطباق", value: AncientcreditPlat },
+                  ],
+                },
+                {
+                  title: "الديون الجديدة",
+                  items: [
+                    { label: "المال", value: `${Newcreditmoney} DA` },
+                    { label: "الأطباق", value: NewcreditPlat },
+                  ],
+                },
+                {
+                  title: "الدفعات",
+                  items: [
+                    { label: "المال", value: `${MoneyVersment} DA` },
+                    ...Versments.map((item) => ({
+                      label: "الأطباق",
+                      value: `${item.Nom} = ${item.Plat}`,
+                    })),
+                  ],
+                },
+                {
+                  title: "الباقي",
+                  items: [
+                    { label: "المال", value: `${Restcreditmoney} DA` },
+                    { label: "الأطباق", value: RestcreditPlat },
+                  ],
+                },
+              ]
+                .map(
+                  (section) => `
+                  <tr class="credit-section">
+                    <th colspan="2" class="credit-title">${section.title}</th>
+                  </tr>
+                  ${section.items
+                    .map(
+                      (item) => `
+                      <tr>
+                        <th>${item.label}</th>
+                        <td>${item.value}</td>
+                      </tr>
+                    `
+                    )
+                    .join("")}
+                `
+                )
+                .join("")}
+            </table>
+          </div>
+        </body>
+      </html>
+    `;
+
+      await Print.printAsync({
+        html: htmlCredit,
+      });
+    } catch (error) {
+      console.error("Error printing credit: ", error);
     }
   };
 
@@ -683,7 +632,7 @@ export default function SpanningTable({
             <Image source={VersmentIcon} style={styles.icon} />
           </Pressable>
 
-          <Pressable style={styles.iconButton} onPress={print}>
+          <Pressable style={styles.iconButton} onPress={printFacture}>
             <Image source={PrintIcon} style={styles.icon} />
           </Pressable>
 

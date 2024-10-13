@@ -12,94 +12,149 @@ import {
   ScrollView,
 } from "react-native";
 import { addExpense, deleteExpense, GetAll } from "@/app/Lib/bdd";
-// Example expense data
-const initialExpenses = [
-  {
-    Expense_ID: 1,
-    description: "شراء كتب",
-    amount: 200,
-    Date: "2024-10-01",
-  },
-  {
-    Expense_ID: 1,
-    description: "شراء كتب",
-    amount: 200,
-    Date: "2024-10-01",
-  },
-  {
-    Expense_ID: 1,
-    Description: "شراء كتب",
-    Amount: 200,
-    Date: "2024-10-01",
-  },
-  {
-    Expense_ID: 1,
-    Description: "شراء كتب",
-    Amount: 200,
-    Date: "2024-10-01",
-  },
-  {
-    Expense_ID: 1,
-    description: "شراء كتب",
-    amount: 200,
-    Date: "2024-10-01",
-  },
-];
-
-// Expense columns
-const expensesColumns = [
-  { key: "Description", label: "الوصف" },
-  { key: "Amount", label: "المبلغ" },
-  { key: "Date", label: "التاريخ" },
-];
+import * as Print from "expo-print";
 
 const ExpensesPage = () => {
-  const [expensesa, setExpensesa] = useState([]);
-
   const [expenses, setExpenses] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
+  const [modalVisible2, setModalVisible2] = useState(false);
+
   const [addExpenseModalVisible, setAddExpenseModalVisible] = useState(false);
   const [newExpense, setNewExpense] = useState({
     Description: "",
     Amount: "",
   });
+  const printMonthlyExpenses = async () => {
+    try {
+      // Function to format month and year
+      const getMonthYear = (date) => {
+        const [year, month] = date.split("-").slice(0, 2);
+        return `${year}-${month}`; // Returns "YYYY-MM"
+      };
+
+      // Group expenses by month
+      const monthlyTotals = expenses.reduce((acc, expense) => {
+        const monthYear = getMonthYear(expense.Date);
+        if (!acc[monthYear]) {
+          acc[monthYear] = { total: 0, details: [] };
+        }
+        acc[monthYear].total += expense.Amount;
+        acc[monthYear].details.push(expense);
+        return acc;
+      }, {});
+
+      // Generate HTML for printing
+      const htmlExpenses = `
+      <html>
+        <head>
+          <style>
+            body {
+              font-family: Tahoma, Arial, sans-serif;
+              margin: 0;
+              padding: 0;
+              direction: rtl;
+            }
+            .expenses {
+              font-size: 1.8em;
+              text-align: right;
+              padding: 0 10px;
+            }
+            table {
+              margin-right: 40px;
+              width: 100%;
+              font-size: 1.3em;
+              border-collapse: collapse;
+              border: 1px dashed #000;
+            }
+            td, th {
+              padding: 5px;
+              border-bottom: 1px dashed #000;
+              text-align: center;
+            }
+            .expense-title {
+              font-weight: bold;
+              font-size: 1.5em;
+              text-align: center;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="expenses">
+            <table>
+              <tr>
+                <th>الشهر والسنة</th>
+                <th>الإجمالي (د.ج)</th>
+              </tr>
+              ${Object.entries(monthlyTotals)
+                .map(
+                  ([monthYear, { total, details }]) => `
+                    <tr>
+                      <td>${monthYear.replace("-", " / ")}</td>
+                      <td>${total} د.ج</td>
+                    </tr>
+                    <tr>
+                      <td colspan="2" class="expense-title">التفاصيل</td>
+                    </tr>
+                    ${details
+                      .map(
+                        (expense) => `
+                        <tr>
+                          <td>${expense.Description}</td>
+                          <td>${expense.Amount} د.ج</td>
+                        </tr>
+                      `
+                      )
+                      .join("")}
+                  `
+                )
+                .join("")}
+            </table>
+          </div>
+        </body>
+      </html>
+    `;
+
+      await Print.printAsync({
+        html: htmlExpenses,
+      });
+    } catch (error) {
+      console.error("Error printing monthly expenses: ", error);
+    }
+  };
+
   async function GetAllExpenses() {
     const r = await GetAll("Expenses", setExpenses);
     console.log("All" + JSON.stringify(r));
   }
-  // Helper function to extract the month from a date
+
   const getMonthYear = (date) => {
     const [year, month] = date.split("-").slice(0, 2);
     return `${year}-${month}`;
   };
 
-  // Function to group expenses by month and calculate totals
   const getMonthlyTotals = () => {
-    return expenses.reduce((totals, expense) => {
+    const totals = expenses.reduce((acc, expense) => {
       const monthYear = getMonthYear(expense.Date);
-      if (!totals[monthYear]) {
-        totals[monthYear] = 0;
+      if (!acc[monthYear]) {
+        acc[monthYear] = { total: 0, details: [] }; // Store total and details
       }
-      totals[monthYear] += expense.Amount;
-      return totals;
+      acc[monthYear].total += expense.Amount;
+      acc[monthYear].details.push(expense);
+      return acc;
     }, {});
+    return totals;
   };
 
-  // Function to calculate total for the current month
   const calculateCurrentMonthTotal = () => {
     const currentMonth = getMonthYear(new Date().toISOString().split("T")[0]);
     const monthlyTotals = getMonthlyTotals();
-    const currentMonthTotal = monthlyTotals[currentMonth] || 0;
-    Alert.alert(
-      "إجمالي المصاريف لهذا الشهر",
-      `إجمالي المصاريف: ${currentMonthTotal}`
-    );
+    const currentMonthTotal = monthlyTotals[currentMonth]
+      ? monthlyTotals[currentMonth].total
+      : 0;
+    setModalVisible2(true);
   };
 
-  // Function to handle deletion confirmation
   const confirmDeleteExpense = (id) => {
-    console.log(id);
-
     Alert.alert(
       "تأكيد الحذف",
       "هل انت متأكد من الحذف؟",
@@ -115,16 +170,12 @@ const ExpensesPage = () => {
     );
   };
 
-  // Function to delete an expense
   const DeleteExpense = async (id) => {
-    console.log(id);
     await deleteExpense(id);
     await GetAllExpenses();
   };
 
-  // Function to add a new expense
   const addNewExpense = async () => {
-    console.log(newExpense);
     if (!newExpense.Description || !newExpense.Amount) {
       Alert.alert("خطأ", "الرجاء ملء جميع الحقول بشكل صحيح.");
       return;
@@ -134,14 +185,11 @@ const ExpensesPage = () => {
     setAddExpenseModalVisible(false);
   };
 
-  // Render each expense card dynamically based on `expensesColumns`
   const renderExpenseItem = ({ item }) => (
     <View style={styles.card}>
-      {expensesColumns.map((column) => (
-        <Text key={column.key} style={styles.text}>
-          {column.label}: {item[column.key]}
-        </Text>
-      ))}
+      <Text style={styles.text}>الوصف: {item.Description}</Text>
+      <Text style={styles.text}>المبلغ: {item.Amount}</Text>
+      <Text style={styles.text}>التاريخ: {item.Date}</Text>
       <Button
         title="حذف"
         onPress={() => confirmDeleteExpense(item.Expense_ID)}
@@ -149,22 +197,23 @@ const ExpensesPage = () => {
       />
     </View>
   );
+
   useEffect(() => {
     GetAllExpenses();
   }, []);
+
   return (
     <View style={styles.container}>
       <View style={styles.buttonContainer}>
-        {/* Button to calculate total for current month */}
-
         <TouchableOpacity
           style={styles.totalButton}
-          onPress={calculateCurrentMonthTotal}
+          onPress={() => {
+            setModalVisible2(true);
+          }}
         >
           <Text style={styles.totalButtonText}>إجمالي هذا الشهر</Text>
         </TouchableOpacity>
 
-        {/* Button to show totals for all other months */}
         <TouchableOpacity
           style={[styles.totalButton, { backgroundColor: "#28a745" }]}
           onPress={() => setModalVisible(true)}
@@ -172,8 +221,12 @@ const ExpensesPage = () => {
           <Text style={styles.totalButtonText}>إجمالي المصاريف لكل الأشهر</Text>
         </TouchableOpacity>
       </View>
-
-      {/* Button to add new expense */}
+      <TouchableOpacity
+        style={styles.totalButton}
+        onPress={printMonthlyExpenses}
+      >
+        <Text style={styles.totalButtonText}>طباعة هذا الشهر</Text>
+      </TouchableOpacity>
       <TouchableOpacity
         style={[styles.totalButton, { backgroundColor: "#ffc107" }]}
         onPress={() => setAddExpenseModalVisible(true)}
@@ -181,31 +234,63 @@ const ExpensesPage = () => {
         <Text style={styles.totalButtonText}>إضافة مصاريف جديدة</Text>
       </TouchableOpacity>
 
-      {/* Expense list */}
       <FlatList
         data={expenses}
         renderItem={renderExpenseItem}
-        keyExtractor={(item) => item.Expense_ID}
+        keyExtractor={(item) => item.Expense_ID.toString()}
       />
 
-      {/* Modal for displaying totals for all months */}
       <Modal visible={modalVisible} transparent={true} animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>إجمالي المصاريف لكل الأشهر</Text>
             <ScrollView>
-              {Object.entries(getMonthlyTotals()).map(([monthYear, total]) => (
-                <Text key={monthYear} style={styles.modalText}>
-                  {monthYear}: {total} د.ج
-                </Text>
-              ))}
+              {Object.entries(getMonthlyTotals()).map(
+                ([monthYear, { total, details }]) => (
+                  <View key={monthYear} style={styles.monthContainer}>
+                    <Text style={styles.modalText}>
+                      {monthYear}: {total} د.ج
+                    </Text>
+                    {details.map((expense, index) => (
+                      <Text key={index} style={styles.modalDetailText}>
+                        - {expense.Description}: {expense.Amount} د.ج
+                      </Text>
+                    ))}
+                  </View>
+                )
+              )}
             </ScrollView>
             <Button title="إغلاق" onPress={() => setModalVisible(false)} />
           </View>
         </View>
       </Modal>
+      <Modal visible={modalVisible2} transparent={true} animationType="slide">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>إجمالي المصاريف لكل الأشهر</Text>
+            <ScrollView>
+              {Object.entries(getMonthlyTotals()).map(
+                ([monthYear, { total, details }]) => (
+                  <View key={monthYear} style={styles.monthContainer}>
+                    <Text style={styles.modalText}>
+                      {monthYear}: {total} د.ج
+                    </Text>
+                    {details.map((expense, index) => (
+                      <Text key={index} style={styles.modalDetailText}>
+                        - {expense.Description}: {expense.Amount} د.ج
+                      </Text>
+                    ))}
+                    {/* Add a line break after each month's details for better readability */}
+                    <View style={styles.separator} />
+                  </View>
+                )
+              )}
+            </ScrollView>
+            <Button title="إغلاق" onPress={() => setModalVisible2(false)} />
+          </View>
+        </View>
+      </Modal>
 
-      {/* Modal for adding a new expense */}
       <Modal
         visible={addExpenseModalVisible}
         transparent={true}
@@ -214,7 +299,6 @@ const ExpensesPage = () => {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>إضافة مصاريف جديدة</Text>
-
             <TextInput
               style={styles.input}
               placeholder="الوصف"
@@ -232,7 +316,6 @@ const ExpensesPage = () => {
                 setNewExpense({ ...newExpense, Amount: text })
               }
             />
-
             <Button title="إضافة" onPress={addNewExpense} />
             <Button
               title="إلغاء"
@@ -270,31 +353,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 20,
-    width: "100%", // Ensures full width for alignment
-  },
-  button: {
-    flex: 1,
-    marginHorizontal: 5,
-    backgroundColor: "#007bff", // Default color for button
-    padding: 10, // Reduced padding
-    borderRadius: 5,
-    alignItems: "center",
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 14, // Reduced font size
-    fontWeight: "bold",
+    width: "100%",
   },
   totalButton: {
     backgroundColor: "#007bff",
-    padding: 10, // Reduced padding for compactness
+    padding: 10,
     borderRadius: 5,
     marginBottom: 20,
     alignItems: "center",
   },
   totalButtonText: {
     color: "#fff",
-    fontSize: 16, // Adjusted font size
+    fontSize: 16,
     fontWeight: "bold",
   },
   modalContainer: {
@@ -317,6 +387,13 @@ const styles = StyleSheet.create({
   modalText: {
     fontSize: 16,
     marginVertical: 5,
+  },
+  monthContainer: {
+    marginBottom: 10,
+  },
+  modalDetailText: {
+    fontSize: 14,
+    marginLeft: 10,
   },
   input: {
     height: 40,
