@@ -21,6 +21,8 @@ import {
   getClientByName,
   getProduitStatusByNom,
   addVersmentPlat,
+  GetClient_FacturesMoney,
+  GetFacturesVersment,
 } from "@/app/Lib/bdd";
 import { Picker } from "@react-native-picker/picker"; // Correctly import Picker
 import FactTable from "@/components/FactTable/page";
@@ -30,8 +32,9 @@ function Sales() {
 
   const [selectedProduct, setSelectedProduct] = useState();
   const [SelectedproductsPlatNom, setSelectedproductsPlatNom] = useState();
-
-  const [products, setproduct] = useState([]);
+  const [versments, setversments] = useState([]);
+  const [VersmentsMoney, setVersmentsMoney] = useState([]);
+  const [products, setproduct] = useState([{}]);
   const [Status, setStatus] = useState([{ S: "s" }]);
   const [NbrPlat, setNbrPlat] = useState("0");
   const [client, setclient] = useState([{}]);
@@ -48,6 +51,8 @@ function Sales() {
   const [selectedProductName, setSelectedProductName] = useState();
   const [Facture_ID, setFacture_ID] = useState(1); // Use product name as value
   const [quantity, setQuantity] = useState("");
+  const [CreditMoney, setCreditMoney] = useState(0);
+
   const handleSubmit = () => {
     // Handle the text input and picker value here
     console.log("Input Text:", nom);
@@ -88,6 +93,7 @@ function Sales() {
       const selected = { ...selectedProduct, Quantite: Number(quantity) }; // Ensure quantity is a number
       setRows((prevRows) => [...prevRows, selected]); // Add new row to the existing array
     }
+    setCreditMoney(CreditMoney);
     console.log(rows);
   };
 
@@ -133,7 +139,7 @@ function Sales() {
       }
     }
   };
-  const handelSave = async () => {
+  const ShowVersment = async () => {
     const Montant_total = rows.reduce((total, item) => total + item.Sum, 0);
     console.log("rows" + JSON.stringify(rows));
     if (Montant_total === 0) {
@@ -147,73 +153,110 @@ function Sales() {
     var plat = 0;
     var valider_Money = true;
     var valider_Plat = true;
-    for (let r of rows) {
-      console.log(rows);
-      console.log(r.Nom);
-      const Statu = await getProduitStatusByNom(r.Nom, setStatus);
-      console.log("return this ===" + JSON.stringify(Statu.Return));
-      if (Statu.Return === "true") {
-        plat = plat + parseInt(r.Quantite);
-      }
-    }
     const Montant_total = rows.reduce((total, item) => total + item.Sum, 0);
-    console.log("Montant_total" + Montant_total);
-    console.log("CreditPlat=" + plat);
-    console.log("Versment_Money=" + paymentAmount);
-    console.log("Client_ID=" + CurrentClient_ID);
-
-    if (plat > 0) {
-      valider_Plat = false;
-    }
-    if (Montant_total > paymentAmount) {
-      valider_Money = false;
-    }
-    console.log(valider_Money, valider_Plat);
-    const Facture_ID = await addFacture(
-      CurrentClient_ID,
-      Montant_total,
-      valider_Money,
-      valider_Plat,
-      plat
-    );
-    console.log("r" + Facture_ID);
-    var ids = [];
-    for (let r of rows) {
-      let plat2 = 0;
-      const Statu = await getProduitStatusByNom(r.Nom, setStatus);
-      console.log("return this ===" + JSON.stringify(Statu.Return));
-      if (Statu.Return === "true") {
-        plat2 = plat2 + parseInt(r.Quantite);
-        const re = await addFactProd(
-          Facture_ID,
-          r.Produit_ID,
-          r.Quantite,
-          r.Prix,
-          plat2
-        );
-        console.log(
-          "add factprod" + Facture_ID,
-          r.Produit_ID,
-          r.Quantite,
-          r.Prix,
-          plat2
-        );
-        ids.push(re);
+    if (Montant_total > 0) {
+      for (let r of rows) {
+        console.log(rows);
+        console.log(r.Nom);
+        const Statu = await getProduitStatusByNom(r.Nom, setStatus);
+        console.log("return this ===" + JSON.stringify(Statu.Return));
+        if (Statu.Return === "true") {
+          plat = plat + parseInt(r.Quantite);
+        }
       }
-    }
-    console.log(ids);
+      // console.log("Montant_total" + Montant_total);
+      // console.log("CreditPlat=" + plat);
+      // console.log("Versment_Money=" + paymentAmount);
+      // console.log("Client_ID=" + CurrentClient_ID);
+      //  console.log(valider_Money, valider_Plat);
+      const Facture_ID = await addFacture(
+        CurrentClient_ID,
+        Montant_total,
+        false,
+        false,
+        plat
+      );
+      // console.log("r" + Facture_ID);
+      var ids = [];
+      for (let r of rows) {
+        let plat2 = 0;
+        const Statu = await getProduitStatusByNom(r.Nom, setStatus);
+        //   console.log("return this ===" + JSON.stringify(Statu.Return));
+        if (Statu.Return === "true") {
+          plat2 = plat2 + parseInt(r.Quantite);
+          const re = await addFactProd(
+            Facture_ID,
+            r.Produit_ID,
+            r.Quantite,
+            r.Prix,
+            plat2
+          );
 
-    console.log("paymentAmount" + paymentAmount);
+          ids.push(re);
+        }
+      }
+      for (let vp of versments) {
+        await addVersmentPlat(Facture_ID, vp.Produit_ID, vp.Plat);
+      }
+      for (let vm of VersmentsMoney) {
+        await addVersment(Facture_ID, vm);
+      }
+      setRows([]);
+    } else {
+      Alert.alert("الرجاء ملأ الفاتورة");
+    }
+  };
+  const addVersment = async () => {
     if (paymentAmount > 0) {
-      const ver = await addVersment(Facture_ID, paymentAmount);
-      console.log(JSON.stringify(ver));
+      //  const ver = await addVersment(Facture_ID, paymentAmount);
+      //console.log(JSON.stringify(ver));
+      setVersmentsMoney((prevVersmentsMoney) => [
+        ...prevVersmentsMoney,
+        Number(paymentAmount),
+      ]);
     }
     if (NbrPlat > 0) {
-      await addVersmentPlat(Facture_ID, selectedProduct, NbrPlat);
-    }
+      var nom = await getProduiNomby_ID(selectedProduct);
+      var CreditPlat = versments;
 
-    setRows([]);
-    setVersment_Money(false);
+      var object = {
+        Produit_ID: selectedProduct,
+        Plat: Number(NbrPlat),
+        Nom: nom.Nom,
+      };
+      console.log(selectedProduct, NbrPlat, nom.Nom);
+
+      // Find the existing product in the versments array
+      const existingProductIndex = CreditPlat.findIndex(
+        (item) => item.Produit_ID === selectedProduct // Ensure you access the right property
+      );
+
+      if (existingProductIndex !== -1) {
+        console.log("yes");
+        // If the product exists, update its quantity
+        CreditPlat[existingProductIndex].Plat += Number(NbrPlat); // Corrected from Plat to NbrPlat
+        setversments([...CreditPlat]); // Update the state with the modified array
+      } else {
+        console.log("no");
+        console.log("object" + JSON.stringify(object));
+        // If the product doesn't exist, add the new object
+        setversments((prevversments) => [...prevversments, object]);
+      }
+    }
+  };
+  const DeleteVersment = async (produitId) => {
+    // console.log(produitId + "==" + JSON.stringify(versments));
+    const r = versments.filter((product) => product.Produit_ID !== produitId);
+    setversments(r);
+  };
+  const DeleteVersmentMoney = async () => {
+    var factversment = VersmentsMoney.reduce(
+      (total, item) => total + Number(item),
+      0
+    );
+    const newCreditMoney = Number(CreditMoney) + Number(factversment);
+    setCreditMoney(newCreditMoney);
+    setVersmentsMoney([0]);
   };
   async function GetNom(id) {
     const r = await getProduiNomby_ID(id);
@@ -222,12 +265,6 @@ function Sales() {
 
     setSelectedproductsPlatNom(Nom);
   }
-  useEffect(() => {
-    if (!selectedProduct || selecteClient === 0) {
-    } else {
-      GetNom(selectedProduct);
-    }
-  }, [selectedProduct]);
   const handleVersments = () => {
     console.log("selected" + selectedProduct);
     if (NbrPlat === "0") {
@@ -239,7 +276,7 @@ function Sales() {
           { text: "إلغاء", style: "cancel" },
           {
             text: "تأكيد",
-            onPress: () => handleValider(),
+            onPress: () => addVersment(),
             style: "destructive",
           },
         ],
@@ -260,7 +297,7 @@ function Sales() {
           { text: "إلغاء", style: "cancel" },
           {
             text: "تأكيد",
-            onPress: () => handleValider(),
+            onPress: () => addVersment(),
             style: "destructive",
           },
         ],
@@ -268,6 +305,13 @@ function Sales() {
       );
     }
   };
+
+  useEffect(() => {
+    if (!selectedProduct || selecteClient === 0) {
+    } else {
+      GetNom(selectedProduct);
+    }
+  }, [selectedProduct]);
 
   useEffect(() => {
     if (model) {
@@ -469,11 +513,17 @@ function Sales() {
       <FactTable
         Thead={Thead}
         rowss={rows}
-        Savefunction={handelSave}
+        Savefunction={handleValider}
         Deletefunction={deleteRow}
         Printfunction={print}
         Facture_ID={Facture_ID}
         client_name={CurrentClient}
+        Versments={versments}
+        VersmentsMoney={VersmentsMoney}
+        functionVersment={ShowVersment}
+        DeleteVersment={DeleteVersment}
+        DeleteVersmentMoney={DeleteVersmentMoney}
+        Client_ID={CurrentClient_ID}
       />
     </View>
   );

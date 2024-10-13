@@ -30,9 +30,6 @@ import {
   addVersmentPlat,
   GetClient_FacturesMoney,
   GetFacturesVersment,
-  GetFacturesVersmentPlat,
-  GetClient_FacturesPlat,
-  GetFactures_Factprod,
 } from "@/app/Lib/bdd";
 function ccyFormat(num) {
   return `${num.toFixed(2)}`;
@@ -69,20 +66,7 @@ export default function SpanningTable({
   const inputRefs = useRef({}); // Ref to store input references
   const [facture_id, setfacture_id] = useState();
   const [CurrentClient_ID, setCurrentClient_ID] = useState(0);
-  const [Ancientcreditmoney, setAncientcreditmoney] = useState(0);
-  const [Newcreditmoney, setNewcreditmoney] = useState(0);
-  const [Restcreditmoney, setRestcreditmoney] = useState(0);
-  const [TotalPlatObject, setTotalPlatObject] = useState([]);
-  const [TotalPlat, setTotalPlat] = useState(0);
-
-  const [AncientcreditPlat_Object, setAncientcreditPlat_Object] = useState([]);
-  const [AncientcreditPlat, setAncientcreditPlat] = useState(0);
-  const [NewcreditPlat, setNewcreditPlat] = useState(0);
-  const [NewcreditPlatObject, setNewcreditPlatObject] = useState([]);
-
-  const [RestcreditPlat, setRestcreditPlat] = useState(0);
-  const [Status, setStatus] = useState([{ S: "s" }]);
-
+  const [currentcreditmoney, setcurrentcreditmoney] = useState(0);
   async function GetTotalCreditMoney(id) {
     var creditMoney = 0;
     const Factures = await GetClient_FacturesMoney(id);
@@ -111,16 +95,19 @@ export default function SpanningTable({
       }
     }
 
-    setAncientcreditmoney(creditMoney);
+    const newvalue =
+      Number(creditMoney) + Number(subtotal(rows)) - Number(MoneyVersment);
+    console.log("newvalue" + subtotal(rows));
+    setcurrentcreditmoney(newvalue);
   }
-  async function GetTotalCreditPlat(id) {
+  async function GetTotalCreditPlat() {
     var CreditPlat = [];
     var VersmentPlat = [];
-    const Factures = await GetClient_FacturesPlat(id);
+    const Factures = await GetClient_FacturesPlat();
     for (let Fact of Factures) {
       if (Fact) {
         const FactProds = await GetFactures_Factprod(Fact.Facture_ID);
-        // console.log("FactProds" + JSON.stringify(Factures));
+        // console.log("FactProds" + JSON.stringify(FactProds));
         for (let fp of FactProds) {
           var nom = await getProduiNomby_ID(fp.Produit_ID);
           if (nom) {
@@ -154,7 +141,12 @@ export default function SpanningTable({
         }
       }
     }
-
+    console.log(
+      "Verment:" +
+        JSON.stringify(VersmentPlat) +
+        "Credit Plat" +
+        JSON.stringify(CreditPlat)
+    );
     // Function to find the Plat value of a specific product
     const findPlatValue = (array, productName) => {
       const product = array.find((item) => item.Produit === productName);
@@ -181,8 +173,7 @@ export default function SpanningTable({
         credit: creditPlat,
       });
     });
-    setAncientcreditPlat_Object(finalResults);
-    console.log("finalResults" + JSON.stringify(finalResults));
+
     var creditOmbalagee = "\n";
     finalResults.map((cp, i) => {
       if (i === 0) {
@@ -191,27 +182,23 @@ export default function SpanningTable({
       }
       creditOmbalagee = creditOmbalagee + cp.Plat + ":" + cp.Produit + "  ";
     });
-    setAncientcreditPlat(creditOmbalagee);
+    setClients((prevClients) =>
+      prevClients.map(
+        (cl) =>
+          cl.Client_ID === Client.Client_ID
+            ? {
+                ...cl,
+                creditOmbalage: creditOmbalagee,
+              } // Update creditOmbalage for the selected client
+            : cl // Keep other clients unchanged
+      )
+    );
     // console.log("CreditPlat" + JSON.stringify(CreditPlat));
   }
-  async function GetFacturTotalPlat() {
-    var Total_Plat = [];
-    for (let r of rows) {
-      let plat2 = 0;
-      const Statu = await getProduitStatusByNom(r.Nom, setStatus);
-      //   console.log("return this ===" + JSON.stringify(Statu.Return));
-      if (Statu.Return === "true") {
-        var object = { Produit: r.Nom, Plat: parseInt(r.Quantite) };
-      }
-      Total_Plat.push(object);
-    }
-    setTotalPlatObject(Total_Plat);
-    console.log("current==" + JSON.stringify(Total_Plat));
-  }
+
   useEffect(() => {
     setCurrentClient_ID(Client_ID);
     GetTotalCreditMoney(Client_ID);
-    GetTotalCreditPlat(Client_ID);
   }, [Client_ID]);
   useEffect(() => {
     // console.log(JSON.stringify(Versments));
@@ -231,7 +218,9 @@ export default function SpanningTable({
       setMoneyVersment(VersmentsMoney);
     }
   }, [VersmentsMoney]);
-  useEffect(() => {}, [MoneyVersment]);
+  useEffect(() => {
+    GetTotalCreditMoney(CurrentClient_ID);
+  }, [MoneyVersment]);
   useEffect(() => {
     const updatedRows = rowss.map((object) => {
       object.Sum = object.Prix_Achat
@@ -247,109 +236,8 @@ export default function SpanningTable({
     setfacture_id(Facture_ID);
   }, [Facture_ID]);
   useEffect(() => {
-    setRestcreditmoney(Newcreditmoney - MoneyVersment);
-  }, [Newcreditmoney, MoneyVersment]);
-  useEffect(() => {
-    setNewcreditmoney(Ancientcreditmoney + subtotal(rows));
-    GetFacturTotalPlat();
+    GetTotalCreditMoney(CurrentClient_ID);
   }, [rows]);
-  useEffect(() => {
-    console.log(
-      "AncientcreditPlat_Object" + JSON.stringify(AncientcreditPlat_Object)
-    );
-    const newobject = AncientcreditPlat_Object.map((obj) => ({ ...obj }));
-    newobject.map((m) => {
-      delete m.vrsment;
-      delete m.credit;
-    });
-
-    setTotalPlat(JSON.stringify(TotalPlatObject));
-    TotalPlatObject.map((tp) => {
-      const existingProductIndex = newobject.findIndex(
-        (item) => item.Produit === tp.Produit
-      );
-
-      // Ensure newobject is an array and initialize it if necessary
-      if (!Array.isArray(newobject)) {
-        newobject = [];
-      }
-
-      if (existingProductIndex !== -1) {
-        // Ensure newobject[existingProductIndex] exists before accessing .Plat
-        if (!newobject[existingProductIndex]) {
-          newobject[existingProductIndex] = { Produit: tp.Produit, Plat: 0 }; // Initialize the product object
-        }
-
-        console.log(
-          "traitment-----" +
-            newobject[existingProductIndex].Plat +
-            "---" +
-            Number(tp.Plat)
-        );
-        newobject[existingProductIndex].Plat += Number(tp.Plat);
-      } else {
-        newobject.push({ Produit: tp.Produit, Plat: tp.Plat });
-      }
-    });
-
-    setNewcreditPlatObject(newobject);
-    var creditOmbalagee = "\n";
-    newobject.map((cp, i) => {
-      if (i === 0) {
-      } else {
-        creditOmbalagee = creditOmbalagee + "\n";
-      }
-      creditOmbalagee = creditOmbalagee + cp.Plat + ":" + cp.Produit + "  ";
-    });
-    setNewcreditPlat(creditOmbalagee);
-
-    // Check if the product already exists in the rows
-  }, [TotalPlatObject]);
-  useEffect(() => {
-    const newobject = NewcreditPlatObject.map((obj) => ({ ...obj }));
-
-    PlatVersment.map((tp) => {
-      const existingProductIndex = newobject.findIndex(
-        (item) => item.Produit === tp.Nom
-      );
-
-      // Ensure newobject is an array and initialize it if necessary
-      if (!Array.isArray(newobject)) {
-        newobject = [];
-      }
-
-      if (existingProductIndex !== -1) {
-        // Ensure newobject[existingProductIndex] exists before accessing .Plat
-        if (!newobject[existingProductIndex]) {
-          newobject[existingProductIndex] = { Produit: tp.Nom, Plat: 0 }; // Initialize the product object
-        }
-
-        console.log(
-          "traitment-----" +
-            newobject[existingProductIndex].Plat +
-            "---" +
-            Number(tp.Plat)
-        );
-        newobject[existingProductIndex].Plat -= Number(tp.Plat);
-      } else {
-        newobject.push({ Produit: tp.Nom, Plat: tp.Plat });
-      }
-    });
-
-    // setRestcreditPlat(newobject);
-    var creditOmbalagee = "\n";
-    newobject.map((cp, i) => {
-      if (i === 0) {
-      } else {
-        creditOmbalagee = creditOmbalagee + "\n";
-      }
-      creditOmbalagee = creditOmbalagee + cp.Plat + ":" + cp.Produit + "  ";
-    });
-    setRestcreditPlat(creditOmbalagee);
-
-    // Check if the product already exists in the rows
-  }, [PlatVersment]);
-
   const handleInputChange = (rowIndex, colName, value) => {
     const updatedRows = [...rows];
     const row = updatedRows[rowIndex];
@@ -449,12 +337,13 @@ export default function SpanningTable({
               padding: 5px 0;
               display: flex;
               justify-content: space-between;
-              margin-bottom: 40px;
+               margin-bottom: 40px;
             }
             .item span {
               text-align: center;
               font-size: 1.4em;
               width: 20%;
+
             }
             .total {
               font-weight: bold;
@@ -468,95 +357,32 @@ export default function SpanningTable({
               font-size: 2.5em;
               text-align: center;
             }
-
-            /* Styled Credit Section */
-            .credits {
-              margin-top: 20px;
-              font-size: 1.8em;
-              text-align: right;
-              padding: 0 10px;
-            }
-            .credit-row {
-              padding: 5px 0;
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              border-bottom: 1px dashed #000;
-            }
-            .credit-label {
-              font-weight: bold;
-              font-size: 1.6em;
-              width: 45%;
-              text-align: left;
-            }
-            .credit-value {
-              font-size: 1.6em;
-              width: 55%;
-              text-align: right;
-            }
-              .credits {
-  font-size: 1.8em;
-  margin-top: 20px;
-  text-align: right;
-  padding: 0 10px;
-}
-
-.credit-section {
-  margin-bottom: 10px;
-}
-
-.credit-title {
-  font-weight: bold;
-  font-size: 2em;
-  margin-bottom: 5px;
-}
-
-.credit-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 5px 0;
-  border-bottom: 1px dashed #000;
-}
-
-.credit-label {
-  font-weight: bold;
-  font-size: 1.6em;
-  width: 40%;
-  text-align: left;
-}
-
-.credit-value {
-  font-size: 1.6em;
-  width: 60%;
-  text-align: right;
-}
-
-.separator {
-  text-align: center;
-  font-size: 2em;
-  margin: 10px 0;
-}
-
           </style>
         </head>
         <body>
           <div class="ticket">
             <h1>RECEIPT</h1>
             <div class="header">
-              قلب اللوز طاهر
+             قلب اللوز طاهر
             </div>
 
-            <div class="separator">- - - - - - - - - - - - - - - - - - - - - -</div>
+            <div class="separator">- - - - - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -</div>
 
             <div class="date-client">
               <div>${new Date().toLocaleDateString("fr-FR")}</div>
               <div>اسم العميل: ${client_name}</div>
             </div>
 
-            <div class="separator">- - - - - - - - - - - - - - - - - - - - - -</div>
+            <div class="separator"> - - - - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -</div>
 
             <div class="items">
+              <div class="item">
+                <span>الرقم</span>
+                <span>المنتج</span>
+                <span>السعر</span>
+                <span>الكمية</span>
+                <span>المجموع</span>
+              </div>
               ${rows
                 .map(
                   (row, index) => `
@@ -572,87 +398,21 @@ export default function SpanningTable({
                 .join("")}
             </div>
 
-            <div class="separator">- - - - - - - - - - - - - - - - - - - - - -</div>
+            <div class="separator"> - - - - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -</div>
 
             <div class="total">
               المجموع: ${invoiceSubtotal}.00DA
             </div>
 
-            <div class="separator">- - - - - - - - - - - - - - - - - - - - - -</div>
-<div class="credits">
-  <!-- Previous Debts -->
-  <div class="credit-section">
-    <div class="credit-title">الديون السابقة</div>
-    <div class="credit-row">
-      <div class="credit-label">المال:</div>
-      <div class="credit-value">${Ancientcreditmoney}</div>
-    </div>
-    <div class="credit-row">
-      <div class="credit-label">الأطباق:</div>
-      <div class="credit-value">${AncientcreditPlat}</div>
-    </div>
-  </div>
+            <div class="separator">- - - - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -</div>
 
-  <!-- Separator -->
-  <div class="separator">- - - - - - - - - - - - - - - - - - - - - -</div>
+            <div class="footer">
+              شكراً لتسوقكم!<br />
+              زورونا مرة أخرى.
+            </div>
 
-  <!-- New Debts -->
-  <div class="credit-section">
-    <div class="credit-title">الديون الجديدة</div>
-    <div class="credit-row">
-      <div class="credit-label">المال:</div>
-      <div class="credit-value">${Newcreditmoney}</div>
-    </div>
-    <div class="credit-row">
-      <div class="credit-label">الأطباق:</div>
-      <div class="credit-value">${NewcreditPlat}</div>
-    </div>
-  </div>
-
-  <!-- Separator -->
-  <div class="separator">- - - - - - - - - - - - - - - - - - - - - -</div>
-
-  <!-- Payments -->
-  <div class="credit-section">
-    <div class="credit-title">الدفعات</div>
-    <div class="credit-row">
-      <div class="credit-label">المال:</div>
-      <div class="credit-value">${MoneyVersment}DA</div>
-    </div>
-  </div>
-
-  <!-- Separator -->
-  <div class="separator">- - - - - - - - - - - - - - - - - - - - - -</div>
-
-  <!-- Itemized Versments -->
-  <div class="credit-section">
-    ${Versments.map(
-      (item, index) => `
-      <div class="credit-row">
-        <div class="credit-label">الأطباق</div>
-        <div class="credit-value">${item.Nom} - ${item.Plat}</div>
-      </div>
-    `
-    ).join("")}
-  </div>
-
-  <!-- Separator -->
-  <div class="separator">- - - - - - - - - - - - - - - - - - - - - -</div>
-
-  <!-- Remaining Debts -->
-  <div class="credit-section">
-    <div class="credit-title">الباقي</div>
-    <div class="credit-row">
-      <div class="credit-label">المال:</div>
-      <div class="credit-value">${Restcreditmoney}</div>
-    </div>
-    <div class="credit-row">
-      <div class="credit-label">الأطباق:</div>
-      <div class="credit-value">${RestcreditPlat}</div>
-    </div>
-  </div>
-</div>
-
+            <div class="separator">- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -</div>
+          </div>
         </body>
       </html>
     `;
@@ -742,62 +502,72 @@ export default function SpanningTable({
             مجموع الفاتورة: {subtotal(rowss)}DA
           </Text>
         </View>
-        <View style={styles.footerSection}>
-          {/* Total Calculations */}
+        <View>
+          <Text style={styles.row}>جميع ديون المال:{currentcreditmoney}</Text>
 
-          {/* Row for Ancien Credit */}
-          <View style={styles.rowHeader}>
-            <Text style={styles.rowHeaderText}>الديون السابقة</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.cell}>المال : {Ancientcreditmoney}</Text>
-            <Text style={styles.cell}> الأطباق : {AncientcreditPlat}</Text>
-          </View>
-
-          {/* Row for New Credit */}
-          <View style={styles.rowHeader}>
-            <Text style={styles.rowHeaderText}>الديون الجديدة</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.cell}> المال :{Newcreditmoney}</Text>
-            <Text style={styles.cell}> الأطباق :{NewcreditPlat}</Text>
-          </View>
-
-          {/* Row for Versment */}
-          <View style={styles.rowHeader}>
-            <Text style={styles.rowHeaderText}>الدفعات</Text>
-          </View>
-          <View style={styles.row}>
-            <TouchableOpacity
-              onPress={() => DeleteVersmentMoney()}
-              style={styles.buttonDelete2}
-            >
-              <Text style={styles.DeleteButtonText}>حذف</Text>
-            </TouchableOpacity>
-            <Text style={styles.cell}> المال: {MoneyVersment}DA</Text>
-          </View>
+          <Text style={styles.row}>جميع ديون الأطباق:</Text>
 
           {Versments.map((item, index) => (
-            <View key={index} style={styles.row}>
+            <View
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                alignContent: "center",
+              }}
+            >
+              <Text key={index} style={styles.row}>
+                دفعة الأطباق: {item.Nom} - {item.Plat}
+              </Text>
               <TouchableOpacity
                 onPress={() => DeleteVersment(item.Produit_ID)}
-                style={styles.buttonDelete2}
+                style={{
+                  backgroundColor: "red",
+                  display: "flex",
+                  flexDirection: "row",
+                  alignContent: "center",
+                  alignItems: "center",
+                }}
               >
-                <Text style={styles.DeleteButtonText}>حذف</Text>
+                <Text
+                  style={{
+                    color: "white",
+
+                    justifyContent: "center",
+                  }}
+                >
+                  حدف
+                </Text>
               </TouchableOpacity>
-              <Text style={styles.cell}>
-                الأطباق: {item.Nom} - {item.Plat}
-              </Text>
             </View>
           ))}
+          <View
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              alignContent: "center",
+            }}
+          >
+            <Text style={styles.row}>دفعة المال: {MoneyVersment}DA</Text>
+            <TouchableOpacity
+              onPress={() => DeleteVersmentMoney()}
+              style={{
+                backgroundColor: "red",
+                display: "flex",
+                flexDirection: "row",
+                alignContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <Text
+                style={{
+                  color: "white",
 
-          {/* Row for Rest */}
-          <View style={styles.rowHeader}>
-            <Text style={styles.rowHeaderText}>الباقي</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.cell}> المال: {Restcreditmoney}</Text>
-            <Text style={styles.cell}> الأطباق: {RestcreditPlat}</Text>
+                  justifyContent: "center",
+                }}
+              >
+                حدف
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
@@ -895,49 +665,5 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginRight: 10, // Adjust spacing as needed
     alignSelf: "center", // Center the label vertically
-  },
-  footerSection: {
-    marginTop: 10,
-    borderTopWidth: 1,
-    borderColor: "#ddd",
-    paddingTop: 10,
-  },
-  rowHeader: {
-    backgroundColor: "#f0f0f0", // Light gray for header background
-
-    borderBottomWidth: 1,
-    borderColor: "#ddd",
-  },
-  rowHeaderText: {
-    fontWeight: "bold",
-    fontSize: 14,
-    textAlign: "center",
-    color: "#333",
-    padding: 5,
-  },
-  rowTotal: {
-    fontWeight: "bold",
-    fontSize: 24,
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    textAlign: "center",
-  },
-  cell: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 5,
-    fontSize: 13,
-  },
-  buttonDelete2: {
-    backgroundColor: "red",
-    padding: 8,
-    borderRadius: 5,
-    marginLeft: 10,
-    alignItems: "center",
-  },
-  DeleteButtonText2: {
-    color: "white",
-    fontWeight: "bold",
   },
 });
