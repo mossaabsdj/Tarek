@@ -59,6 +59,7 @@ export default function SpanningTable({
   DeleteVersment,
   DeleteVersmentMoney,
   Client_ID,
+  setcredis,
 }) {
   const scrollViewRef = useRef();
   var NewThead = ["Sum", "Quantite", "Prix", "Nom"];
@@ -102,10 +103,9 @@ export default function SpanningTable({
             0
           );
           //  console.log("All Facture Versment" + factversment);
-          if (factversment < Fact.Montant_Total) {
-            //console.log(factversment + "===" + Fact.Montant_Total);
-            creditMoney = creditMoney + (Fact.Montant_Total - factversment);
-          }
+          //console.log(factversment + "===" + Fact.Montant_Total);
+          creditMoney = creditMoney + (Fact.Montant_Total - factversment);
+
           //  console.log("creditMoney" + creditMoney);
         }
       }
@@ -613,7 +613,36 @@ export default function SpanningTable({
       console.error("Error printing credit: ", error);
     }
   };
+  async function SaveAll() {
+    console.log(
+      "1" + Ancientcreditmoney,
+      Newcreditmoney,
+      Restcreditmoney,
+      AncientcreditPlat,
+      NewcreditPlat,
+      RestcreditPlat,
+      TotalPlat
+    );
+    setcredis(
+      Ancientcreditmoney,
+      Newcreditmoney,
+      Restcreditmoney,
+      AncientcreditPlat,
+      NewcreditPlat,
+      RestcreditPlat,
+      TotalPlat,
+      true
+    );
 
+    // await Savefunction();
+
+    setPlatVersment([]);
+    setMoneyVersment([]);
+    setNewcreditmoney(0);
+    setNewcreditPlat(0);
+    await GetTotalCreditMoney(CurrentClient_ID);
+    await GetTotalCreditPlat(CurrentClient_ID);
+  }
   useEffect(() => {
     if (!I18nManager.isRTL) {
       I18nManager.forceRTL(true);
@@ -636,7 +665,7 @@ export default function SpanningTable({
             <Image source={PrintIcon} style={styles.icon} />
           </Pressable>
 
-          <Pressable style={styles.iconButton} onPress={() => Savefunction()}>
+          <Pressable style={styles.iconButton} onPress={() => SaveAll()}>
             <Image source={VaiderIcon} style={styles.icon} />
           </Pressable>
         </View>

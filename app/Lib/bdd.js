@@ -2,7 +2,7 @@ import * as SQLite from "expo-sqlite";
 import * as FileSystem from "expo-file-system";
 import { Asset } from "expo-asset";
 // Open or create the database named 'tarek'
-const db = SQLite.openDatabaseAsync("tarek13.db");
+const db = SQLite.openDatabaseAsync("tarek14.db");
 
 async function creatAll(params) {
   try {
@@ -168,6 +168,13 @@ const createFactureTable = async () => {
           ValiderMoney BOOLEAN NOT NULL DEFAULT 0,
           ValiderPlat BOOLEAN NOT NULL DEFAULT 0,
           Plat INTEGER,
+          ancientCreditMoney TEXT,
+          newCreditMoney TEXT,
+          restCreditMoney TEXT,
+          ancientCreditPlat TEXT,
+          newCreditPlat TEXT,
+          restCreditPlat TEXT,
+          totalPlat TEXT,
           FOREIGN KEY (Client_ID) REFERENCES Client(Client_ID) ON DELETE CASCADE
         );
       `);
@@ -176,6 +183,7 @@ const createFactureTable = async () => {
     console.error("Error creating 'facture' table:", error);
   }
 };
+
 const alterFactureTable = async () => {
   try {
     await (
@@ -350,6 +358,25 @@ async function GetClient_FacturesPlat(id) {
     console.error("Error fetching product status:", error);
   }
 }
+
+async function GetClient_Factures(id) {
+  try {
+    // Prepare the SQL statement
+    const statement = await (
+      await db
+    ).prepareAsync("SELECT * FROM facture WHERE Client_ID = $id ");
+
+    // Execute the statement with the product name
+    const result = await statement.executeAsync({ $id: id });
+    const r = result.getAllAsync();
+    return r;
+    // Finalize the statement to release resources
+    await statement.finalize();
+  } catch (error) {
+    console.error("Error fetching product status:", error);
+  }
+}
+
 async function GetClient_FacturesMoney(id) {
   try {
     // Prepare the SQL statement
@@ -689,21 +716,39 @@ const addFacture = async (
   montantTotal,
   validerMoney,
   validerPlat,
-  plat
+  plat,
+  ancientCreditMoney,
+  newCreditMoney,
+  restCreditMoney,
+  ancientCreditPlat,
+  newCreditPlat,
+  restCreditPlat,
+  totalPlat
 ) => {
   try {
     const r = await (
       await db
     ).runAsync(
       `
-      INSERT INTO facture (Client_ID, Montant_Total, Date_Creat, ValiderMoney, ValiderPlat, Plat)
-      VALUES (?, ?, datetime('now', 'localtime'), ?, ?, ?);
+      INSERT INTO facture (
+        Client_ID, Montant_Total, Date_Creat, ValiderMoney, ValiderPlat, Plat, 
+        ancientCreditMoney, newCreditMoney, restCreditMoney, 
+        ancientCreditPlat, newCreditPlat, restCreditPlat, totalPlat
+      )
+      VALUES (?, ?, datetime('now', 'localtime'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
     `,
       clientId,
       montantTotal,
       validerMoney,
       validerPlat,
-      plat
+      plat,
+      ancientCreditMoney,
+      newCreditMoney,
+      restCreditMoney,
+      ancientCreditPlat,
+      newCreditPlat,
+      restCreditPlat,
+      totalPlat
     );
     console.log("Facture added successfully.");
     return r.lastInsertRowId;
@@ -711,6 +756,7 @@ const addFacture = async (
     console.error("Error adding facture:", error);
   }
 };
+
 const updateFacture = async (
   factureId,
   clientId,
@@ -1264,4 +1310,5 @@ module.exports = {
   getClientByName,
   addExpense,
   deleteExpense,
+  GetClient_Factures,
 };

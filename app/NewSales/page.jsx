@@ -52,12 +52,45 @@ function Sales() {
   const [Facture_ID, setFacture_ID] = useState(1); // Use product name as value
   const [quantity, setQuantity] = useState("");
   const [CreditMoney, setCreditMoney] = useState(0);
+  const [Ancientcreditmoney1, setAncientcreditmoney1] = useState(0);
+  const [Newcreditmoney1, setNewcreditmoney1] = useState(0);
+  const [Restcreditmoney1, setRestcreditmoney1] = useState(0);
+  const [AncientcreditPlat1, setAncientcreditPlat1] = useState(0);
+  const [NewcreditPlat1, setNewcreditPlat1] = useState(0);
+  const [RestcreditPlat1, setRestcreditPlat1] = useState(0);
+  const [TotalPlat1, setTotalPlat1] = useState(0);
+  const [ready, setready] = useState(false);
+
+  useEffect(() => {
+    if (ready) {
+      handleValider();
+    }
+  }, [ready]);
 
   const handleSubmit = () => {
     // Handle the text input and picker value here
     console.log("Input Text:", nom);
     console.log("Selected Value:", selectedClient);
     setmodel(false);
+  };
+  const updateCredits = (
+    ancientCreditMoney,
+    newCreditMoney,
+    restCreditMoney,
+    ancientCreditPlat,
+    newCreditPlat,
+    restCreditPlat,
+    totalPlat,
+    B
+  ) => {
+    setAncientcreditmoney1(ancientCreditMoney);
+    setNewcreditmoney1(newCreditMoney);
+    setRestcreditmoney1(restCreditMoney);
+    setAncientcreditPlat1(ancientCreditPlat);
+    setNewcreditPlat1(newCreditPlat);
+    setRestcreditPlat1(restCreditPlat);
+    setTotalPlat1(totalPlat);
+    setready(B);
   };
 
   const handleAdd = () => {
@@ -169,12 +202,28 @@ function Sales() {
       // console.log("Versment_Money=" + paymentAmount);
       // console.log("Client_ID=" + CurrentClient_ID);
       //  console.log(valider_Money, valider_Plat);
+      console.log(
+        "2" + Ancientcreditmoney1,
+        Newcreditmoney1,
+        Restcreditmoney1,
+        AncientcreditPlat1,
+        NewcreditPlat1,
+        RestcreditPlat1,
+        TotalPlat1
+      );
       const Facture_ID = await addFacture(
         CurrentClient_ID,
         Montant_total,
         false,
         false,
-        plat
+        plat,
+        Ancientcreditmoney1,
+        Newcreditmoney1,
+        Restcreditmoney1,
+        AncientcreditPlat1,
+        NewcreditPlat1,
+        RestcreditPlat1,
+        TotalPlat1
       );
       console.log("Facture_ID" + Facture_ID);
       var ids = [];
@@ -210,6 +259,9 @@ function Sales() {
     } else {
       Alert.alert("الرجاء ملأ الفاتورة");
     }
+    setversments([]);
+    setVersmentsMoney([]);
+    setready(false);
   };
   const addVersment_tolist = async () => {
     if (paymentAmount > 0) {
@@ -529,6 +581,7 @@ function Sales() {
         DeleteVersment={DeleteVersment}
         DeleteVersmentMoney={DeleteVersmentMoney}
         Client_ID={CurrentClient_ID}
+        setcredis={updateCredits}
       />
     </View>
   );

@@ -16,7 +16,9 @@ import {
   updateFactureValiderPlat,
   updateFactProdPlatDecrement,
   updateFactProdPlatIncrement,
+  GetClient_Factures,
 } from "@/app/Lib/bdd";
+import ArabicMonthYearPicker from "./picker";
 
 import React, { useEffect, useState } from "react";
 import {
@@ -38,7 +40,7 @@ import editIcon from "@/assets/icons/edit.png";
 
 import { Picker } from "@react-native-picker/picker"; // Correctly import Picker
 import { useStoreRootState } from "expo-router/build/global-state/router-store";
-
+import * as Print from "expo-print";
 // Column names
 const columns = [
   { key: "Nom", label: "الاسم واللقب" },
@@ -47,7 +49,6 @@ const columns = [
   { key: "creditMoney", label: " دين المال" },
   { key: "creditOmbalage", label: " دين الاطباق" },
 ];
-
 // Client data
 const initialClients = [
   {
@@ -107,7 +108,6 @@ const initialFactures_Plat = [
     date: "2024-09-25",
   },
 ];
-
 const ClientConsultation = () => {
   const [Versment, setVersment] = useState([]);
   const [VersmentPlat, setVersmentPlat] = useState([]);
@@ -116,9 +116,10 @@ const ClientConsultation = () => {
     { Nom: "قلب اللوز 50/30", Prix: 30, Produit_ID: 2, Return: "true" },
   ]);
   const [selectedProduct, setSelectedProduct] = useState(produit[0].Produit_ID);
-
   const [facturesplat, setFacturesplat] = useState(initialFactures);
   const [factures, setFactures] = useState(initialFactures);
+  const [factures_To_Print, setfactures_To_Print] = useState([]);
+
   const [clients, setClients] = useState(initialClients);
   const [searchQuery, setSearchQuery] = useState("");
   const [SearchQuery_Fact, setSearchQuery_Fact] = useState("");
@@ -131,7 +132,29 @@ const ClientConsultation = () => {
   const [Versment_Money, setVersment_Money] = useState(false);
   const [paymentAmount, setpaymentAmount] = useState(0);
   const [Versment_Plat, setVersment_Plat] = useState(false);
-  const [NbrPlat, setNbrPlat] = useState(0);
+  const [NbrPlt, setNbrPlat] = useState(0);
+  const [isPickerVisible, setPickerVisible] = useState(false);
+  function filterFacturesByMonthAndYear(factures, month, year) {
+    return factures.filter((facture) => {
+      const factureDate = new Date(facture.Date_Creat);
+      const factureMonth = factureDate.getMonth() + 1; // Months are zero-based in JavaScript
+      const factureYear = factureDate.getFullYear();
+
+      // Compare facture month and year with the provided month and year
+      return factureMonth === month && factureYear === year;
+    });
+  }
+  const handleConfirm = async (month, year) => {
+    // console.log(`Selected Month: ${month}, Selected Year: ${year}`);
+    setPickerVisible(false);
+    const filteredFactures = filterFacturesByMonthAndYear(
+      factures_To_Print,
+      month,
+      year
+    ); // For October 2024
+    //  console.log(filteredFactures);
+    await printFactures(filteredFactures);
+  };
   const arabicMonths = [
     "يناير",
     "فبراير",
@@ -146,6 +169,202 @@ const ClientConsultation = () => {
     "نوفمبر",
     "ديسمبر",
   ];
+  async function printFactures(factures) {
+    // Initialize total amount variable
+    let totalMontant = 0;
+
+    // Create HTML content to format the factures for printing in Arabic (RTL)
+    let htmlContent = `
+    <html dir="rtl" lang="ar">
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { 
+            font-family: 'Arial', sans-serif; 
+            margin: 20px;
+            text-align: right; 
+            font-size: 18px; /* Increased font size */
+          }
+          table { 
+            width: 100%; 
+            margin-top: 20px; 
+            direction: rtl; 
+            font-size: 18px; /* Increased font size for table */
+          }
+          th, td { 
+            padding: 12px; /* Increased padding */
+            text-align: right; 
+            font-size: 32px; /* Increased font size for table */
+          }
+          th { 
+            background-color: #f2f2f2; 
+          }
+        </style>
+      </head>
+      <body>
+        <h1 style="font-size: 24px;">تفاصيل الفاتورة</h1> <!-- Larger heading -->
+        <table>
+          <tr>
+            <td colspan="6">--------------------------------------------------------------------------------------------------------</td>
+          </tr>
+          <tr>
+            <th>الرقم</th>
+            <th>التاريخ</th>
+            <th>الرصيد السابق (النقود)</th>
+            <th>الرصيد المتبقي (النقود)</th>
+            <th>الرصيد السابق (الطبق)</th>
+            <th>الرصيد المتبقي (الطبق)</th>
+          </tr>
+          <tr>
+            <td colspan="6">--------------------------------------------------------------------------------------------------------</td>
+          </tr>
+  `;
+
+    // Add rows for each facture and sum up the total amounts
+    factures.forEach((facture) => {
+      const {
+        Facture_ID,
+        Date_Creat,
+        Montant_Total, // Make sure Montant_Total is included
+        ancientCreditMoney,
+        restCreditMoney,
+        ancientCreditPlat,
+        restCreditPlat,
+      } = facture;
+
+      // Add the actual data row
+      htmlContent += `
+      <tr>
+        <td>${Facture_ID}.0</td>
+        <td>${Date_Creat}</td>
+        <td>${ancientCreditMoney}</td>
+        <td>${restCreditMoney}</td>
+        <td>${ancientCreditPlat}</td>
+        <td>${restCreditPlat}</td>
+      </tr>
+      <tr>
+        <td colspan="6">--------------------------------------------------------------------------------------------------------</td>
+      </tr>
+    `;
+
+      // Accumulate the total for Montant_Total
+      totalMontant += Montant_Total || 0; // Ensure that if Montant_Total is undefined, 0 is added
+    });
+
+    // Add the total montant at the end of the table
+    htmlContent += `
+    <tr>
+  <td colspan="6" style="text-align: center; font-weight: bold; font-size: 48px;">المجموع الإجمالي للنقود: ${totalMontant}</td>
+</tr>
+    `;
+
+    // Close HTML content
+    htmlContent += `
+        </table>
+      </body>
+    </html>
+  `;
+
+    // Use expo-print to print the content
+    try {
+      await Print.printAsync({
+        html: htmlContent,
+      });
+    } catch (error) {
+      console.error("Print failed:", error);
+    }
+  }
+
+  async function Object_To_Print(Client) {
+    // console.log(factures);
+    const id = Client.Client_ID;
+    const Factures = await GetClient_Factures(id);
+
+    // Process each facture
+    for (let fact of Factures) {
+      let RestFacture = 0;
+      let Arrayversment = [];
+      let Total_Versment = 0;
+
+      // Get payments (versments) for each facture
+      const versments = await GetFacturesVersment(fact.Facture_ID);
+      if (versments && versments.length > 0) {
+        for (let ver of versments) {
+          let somme = parseInt(ver.Somme, 10) || 0; // Ensure somme is a number, default to 0
+          Arrayversment.push(somme);
+        }
+        Total_Versment = Arrayversment.reduce((total, item) => total + item, 0);
+      }
+      fact.Total_Versment = Total_Versment;
+    }
+
+    // Process total plat for each facture
+    for (let Fact of Factures) {
+      let CreditPlat = [];
+      let creditOmbalagee = "";
+
+      if (Fact) {
+        const FactProds = await GetFactures_Factprod(Fact.Facture_ID);
+
+        for (let fp of FactProds) {
+          let nom = await getProduiNomby_ID(fp.Produit_ID);
+          if (nom) {
+            // Create or update product object in CreditPlat
+            const existingProduct = CreditPlat.find(
+              (item) => item.Produit === nom.Nom
+            );
+            if (existingProduct) {
+              existingProduct.Plat += fp.Plat; // Update the Plat amount
+            } else {
+              CreditPlat.push({ Produit: nom.Nom, Plat: fp.Plat });
+            }
+          }
+        }
+
+        // Construct the creditOmbalagee string
+        creditOmbalagee = CreditPlat.map(
+          (cp) => `${cp.Plat}: {${cp.Produit}}`
+        ).join("\n");
+
+        console.log(creditOmbalagee);
+        Fact.Total_Plat = creditOmbalagee; // Assign the constructed string
+      }
+    }
+    //Process Total Plat Versment-----------------------
+    for (let Fact of Factures) {
+      var VersmentPlat = [];
+
+      if (Fact) {
+        const Versments = await GetFacturesVersmentPlat(Fact.Facture_ID);
+        if (Versments) {
+          for (let vers of Versments) {
+            var nom = await getProduiNomby_ID(vers.Produit_ID);
+            if (nom) {
+              var object = { Produit: nom.Nom, Plat: vers.Plat };
+              const existingProduct = VersmentPlat.find(
+                (item) => item.Produit === nom.Nom
+              ); // Check if the product exists
+              if (existingProduct) {
+                existingProduct.Plat += vers.Plat;
+              } else {
+                VersmentPlat.push(object);
+              }
+            }
+          }
+        }
+      }
+      if (VersmentPlat[0]) {
+        Fact.Versment_Plat = VersmentPlat;
+      } else {
+        Fact.Versment_Plat = 0;
+      }
+    }
+    setfactures_To_Print(Factures);
+    // await printFactures(Factures);
+    setPickerVisible(true);
+
+    // console.log(Factures);
+  }
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -166,12 +385,10 @@ const ClientConsultation = () => {
   const handleSearch = (query) => {
     setSearchQuery(query);
   };
-
   const filteredClients = clients.filter((client) => {
     const fullName = `${client.Nom} ${client.Prenom}`.toLowerCase(); // Combine Nom and Prenom
     return fullName.includes(searchQuery.toLowerCase()); // Check if it includes the search query
   });
-
   const handleSearch_Fact = (query) => {
     setSearchQuery_Fact(query);
   };
@@ -212,7 +429,6 @@ const ClientConsultation = () => {
     await GetTotalCreditMoney();
     await GetTotalCreditPlat();
   };
-
   const handelAddVersment = async () => {
     console.log(selectedFacture, paymentAmount);
     addVersment(selectedFacture, paymentAmount);
@@ -303,6 +519,7 @@ const ClientConsultation = () => {
           title=" متابعة ديون الاطباق "
           onPress={() => handlePlatCredit(item)}
         />
+        <Button title="طباعة " onPress={() => Object_To_Print(item)} />
         <Button
           title="متابعة ديون المال"
           onPress={() => GetFacturesMoney(item)}
@@ -310,7 +527,6 @@ const ClientConsultation = () => {
       </View>
     </View>
   );
-
   const renderVersment = ({ item: versment }) => (
     <View style={styles.versmentContainer}>
       <Text style={styles.title}>تفاصيل الدفع</Text>
@@ -367,7 +583,6 @@ const ClientConsultation = () => {
       </View>
     </View>
   );
-
   const renderFactureItem = ({ item }) => (
     <View style={styles.card}>
       <Text style={styles.label}>
@@ -456,12 +671,7 @@ const ClientConsultation = () => {
           }
         }
       }
-      console.log(
-        "Verment:" +
-          JSON.stringify(VersmentPlat) +
-          "Credit Plat" +
-          JSON.stringify(CreditPlat)
-      );
+
       // Function to find the Plat value of a specific product
       const findPlatValue = (array, productName) => {
         const product = array.find((item) => item.Produit === productName);
@@ -525,19 +735,19 @@ const ClientConsultation = () => {
           // console.log("versment" + JSON.stringify(versment));
           if (versment) {
             for (let ver of versment) {
-              console.log("versment" + JSON.stringify(versment));
+              // console.log("versment" + JSON.stringify(versment));
               Arrayversment.push(ver.Somme);
             }
             var factversment = Arrayversment.reduce(
               (total, item) => total + item,
               0
             );
-            console.log("All Facture Versment" + factversment);
-            if (factversment < Fact.Montant_Total) {
-              //console.log(factversment + "===" + Fact.Montant_Total);
-              creditMoney = creditMoney + (Fact.Montant_Total - factversment);
-            }
-            console.log("creditMoney" + creditMoney);
+            //  console.log("All Facture Versment" + factversment);
+
+            console.log(factversment + "===" + Fact.Montant_Total);
+            creditMoney = creditMoney + (Fact.Montant_Total - factversment);
+
+            //  console.log("creditMoney" + creditMoney);
           }
         }
       }
@@ -962,6 +1172,11 @@ const ClientConsultation = () => {
           </View>
         </Modal>
       )}
+      <ArabicMonthYearPicker
+        isVisible={isPickerVisible}
+        onClose={() => setPickerVisible(false)}
+        onConfirm={handleConfirm}
+      />
     </View>
   );
 };
