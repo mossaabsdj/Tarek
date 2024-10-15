@@ -132,7 +132,7 @@ const ClientConsultation = () => {
   const [Versment_Money, setVersment_Money] = useState(false);
   const [paymentAmount, setpaymentAmount] = useState(0);
   const [Versment_Plat, setVersment_Plat] = useState(false);
-  const [NbrPlt, setNbrPlat] = useState(0);
+  const [NbrPlat, setNbrPlat] = useState(0);
   const [isPickerVisible, setPickerVisible] = useState(false);
   function filterFacturesByMonthAndYear(factures, month, year) {
     return factures.filter((facture) => {
@@ -184,12 +184,14 @@ const ClientConsultation = () => {
             margin: 20px;
             text-align: right; 
             font-size: 18px; /* Increased font size */
-          }
+              border-right: 15px dashed #000;
+
+            }
           table { 
             width: 100%; 
             margin-top: 20px; 
             direction: rtl; 
-            font-size: 18px; /* Increased font size for table */
+            font-size: 5px; /* Increased font size for table */
           }
           th, td { 
             padding: 12px; /* Increased padding */
@@ -202,10 +204,10 @@ const ClientConsultation = () => {
         </style>
       </head>
       <body>
-        <h1 style="font-size: 24px;">تفاصيل الفاتورة</h1> <!-- Larger heading -->
+        <h1 style="font-size: 49px;">تتفاصيل فوانتير الشهر:  </h1> <!-- Larger heading -->
         <table>
           <tr>
-            <td colspan="6">--------------------------------------------------------------------------------------------------------</td>
+            <td colspan="6">------------------------------------------------------------------------------------------------------</td>
           </tr>
           <tr>
             <th>الرقم</th>
@@ -216,7 +218,7 @@ const ClientConsultation = () => {
             <th>الرصيد المتبقي (الطبق)</th>
           </tr>
           <tr>
-            <td colspan="6">--------------------------------------------------------------------------------------------------------</td>
+            <td colspan="6">------------------------------------------------------------------------------------------------------</td>
           </tr>
   `;
 
@@ -243,7 +245,7 @@ const ClientConsultation = () => {
         <td>${restCreditPlat}</td>
       </tr>
       <tr>
-        <td colspan="6">--------------------------------------------------------------------------------------------------------</td>
+        <td colspan="6">------------------------------------------------------------------------------------------------------</td>
       </tr>
     `;
 
@@ -589,17 +591,21 @@ const ClientConsultation = () => {
         رقم الفاتورة: <Text style={styles.value}>{item.Facture_ID}</Text>
       </Text>
       <Text style={styles.label}>
+        الدين القديم :
+        <Text style={styles.value}> {item.ancientCreditMoney}DA </Text>
+      </Text>
+      <Text style={styles.label}>
         اٍجمالي المبلع :
         <Text style={styles.value}> {item.Montant_Total}DA </Text>
       </Text>
       <Text style={styles.label}>
-        الباقي: <Text style={styles.value}>{item.Reste}DA</Text>
+        الباقي: <Text style={styles.value}>{item.restCreditMoney}DA</Text>
       </Text>
       <Text style={styles.label}>
         التاريخ: <Text style={styles.value}>{formatDate(item.Date_Creat)}</Text>
       </Text>
       <Button
-        title="دفع"
+        title="الدفعات"
         onPress={() =>
           setVersment_Money(true) + setselectedFacture(item.Facture_ID)
         }
@@ -612,10 +618,16 @@ const ClientConsultation = () => {
         رقم الفاتورة: <Text style={styles.value}>{item.Facture_ID}</Text>
       </Text>
       <Text style={styles.label}>
-        اٍجمالي الأطباق :<Text style={styles.value}>{item.Plat} </Text>
+        الدين السابق :
+        <Text style={styles.value}>{"\n" + item.ancientCreditPlat} </Text>
       </Text>
       <Text style={styles.label}>
-        باقي الاطباق: <Text style={styles.value}>{"\n" + item.reste}</Text>
+        اٍجمالي الأطباق :
+        <Text style={styles.value}>{"\n" + item.totalPlat} </Text>
+      </Text>
+      <Text style={styles.label}>
+        باقي الاطباق:
+        <Text style={styles.value}>{"\n" + item.restCreditPlat}</Text>
       </Text>
       <Text style={styles.label}>
         التاريخ: <Text style={styles.value}>{formatDate(item.Date_Creat)}</Text>

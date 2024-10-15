@@ -19,8 +19,11 @@ import {
   deleteCreditEmployee,
   updateEmployee,
   addCreditEmployee,
+  GetEmployee_Deduction,
 } from "@/app/Lib/bdd";
 import EmployeeIcon from "@/assets/icons/workers.png";
+import * as Print from "expo-print";
+import ArabicMonthYearPicker from "./picker";
 
 const columns = [
   { key: "Nom", label: "الاسم" },
@@ -39,6 +42,7 @@ const EmployeeConsultation = () => {
   const [consulterDeductionsModel, setConsulterDeductionsModel] =
     useState(false);
   const [deductions_Employee, setDeductions_Employee] = useState();
+  const [isPickerVisible, setPickerVisible] = useState(false);
 
   const [deductions, setDeductions] = useState([]);
   const [deductionSum, setDeductionSum] = useState("");
@@ -174,6 +178,7 @@ const EmployeeConsultation = () => {
           setConsulterDeductionsModel(true);
         }}
       />
+
       <Button title="تعديل" onPress={() => handleModifyEmployee(item)} />
       <Button
         title="حذف"
@@ -188,7 +193,100 @@ const EmployeeConsultation = () => {
     GetAllEmployee();
   }, []);
   async function GetDudection() {
-    await GetAll("Credit_Employee", setDeductions);
+    const r = await GetEmployee_Deduction(deductions_Employee.Employee_ID);
+    setDeductions(r);
+  }
+  async function handleConfirm(month, year) {
+    setPickerVisible(false);
+
+    // Fetch all deductions of the employee
+    const deductions = await GetEmployee_Deduction(
+      deductions_Employee.Employee_ID
+    );
+
+    // Filter deductions by the selected month and year
+    const filteredDeductions = deductions.filter((item) => {
+      const deductionDate = new Date(item.Date); // Convert to Date object
+      return (
+        deductionDate.getMonth() + 1 === month && // getMonth() is 0-based, so +1
+        deductionDate.getFullYear() === year
+      );
+    });
+
+    // Calculate the total sum of the filtered deductions
+    const totalSum = filteredDeductions.reduce(
+      (total, item) => total + item.Somme,
+      0
+    );
+
+    // Employee name
+    const Nom = deductions_Employee.Nom;
+
+    // HTML content for printing
+    const html = `
+    <html>
+    <head>
+      <style>
+        body { 
+          font-family: Arial, sans-serif; 
+          padding: 40px; 
+          direction: rtl;  
+          text-align: right; 
+          font-size: 40px; 
+          border-right: 5px dashed #000;
+        }
+        table { 
+          width: 100%; 
+          border-collapse: collapse; 
+          text-align: right; 
+          margin-top: 20px;
+        }
+        th, td { 
+          padding: 15px; 
+          text-align: right;  
+          border-bottom: 1px solid #ddd; 
+          font-size: 40px;
+        }
+        th { 
+          background-color: #f2f2f2; 
+          font-weight: bold;
+        }
+        h1 { 
+          margin-top: 30px; 
+          font-size: 50px; 
+        }
+        h2 { 
+          font-size: 45px; 
+          margin-bottom: 20px;
+        }
+      </style>
+    </head>
+    <body>
+      <h1>تقرير الاستقطاعات</h1>
+      <h2>اسم الموظف: ${Nom}</h2>
+      <table>
+        <tr>
+          <th>المبلغ</th>
+          <th>التاريخ</th>
+        </tr>
+        ${filteredDeductions
+          .map(
+            (item) => `
+            <tr>
+              <td>${item.Somme}.00</td>
+              <td>${item.Date}</td>
+            </tr>
+          `
+          )
+          .join("")}
+      </table>
+      <h1>المجموع الكلي: ${totalSum}.00</h1>
+    </body>
+    </html>
+  `;
+
+    // Print the content
+    await Print.printAsync({ html });
   }
   useEffect(() => {
     if (consulterDeductionsModel) {
@@ -212,6 +310,7 @@ const EmployeeConsultation = () => {
           >
             <Text style={styles.closeButtonText}>خروج</Text>
           </TouchableOpacity>
+
           <Text style={styles.modalTitle}>اقتطاعات الموظف</Text>
           <TextInput
             style={styles.input}
@@ -222,6 +321,11 @@ const EmployeeConsultation = () => {
           />
 
           <Button title="إضافة اقتطاع" onPress={handleAddDeduction} />
+          <Button
+            title="طباعة الاقتطاعات "
+            onPress={() => setPickerVisible(true)}
+          />
+
           <FlatList
             data={deductions}
             renderItem={renderDeductionItem}
@@ -365,6 +469,11 @@ const EmployeeConsultation = () => {
           </View>
         </Modal>
       )}
+      <ArabicMonthYearPicker
+        isVisible={isPickerVisible}
+        onClose={() => setPickerVisible(false)}
+        onConfirm={handleConfirm}
+      />
     </View>
   );
 };

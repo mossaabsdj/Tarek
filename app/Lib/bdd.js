@@ -376,6 +376,23 @@ async function GetClient_Factures(id) {
     console.error("Error fetching product status:", error);
   }
 }
+async function GetEmployee_Deduction(id) {
+  try {
+    // Prepare the SQL statement
+    const statement = await (
+      await db
+    ).prepareAsync("SELECT * FROM Credit_Employee WHERE Employee_ID = $id ");
+
+    // Execute the statement with the product name
+    const result = await statement.executeAsync({ $id: id });
+    const r = result.getAllAsync();
+    return r;
+    // Finalize the statement to release resources
+    await statement.finalize();
+  } catch (error) {
+    console.error("Error fetching product status:", error);
+  }
+}
 
 async function GetClient_FacturesMoney(id) {
   try {
@@ -850,6 +867,37 @@ const deleteFacture = async (factureId) => {
     console.error("Error deleting facture:", error);
   }
 };
+const getLastFactureId = async () => {
+  try {
+    // Prepare the SQL statement
+    const statement = await (
+      await db
+    ).prepareAsync(`
+      SELECT Facture_ID FROM facture ORDER BY Facture_ID DESC LIMIT 1;
+    `);
+
+    // Execute the prepared statement
+    const r = await statement.executeAsync();
+    const result = await r.getAllAsync();
+
+    // Finalize the statement
+    // await statement.finalize();
+
+    // Check if there is a result
+    if (result.length > 0) {
+      const lastFactureId = result[0].Facture_ID;
+      console.log("Last Facture_ID:", lastFactureId);
+      return lastFactureId;
+    } else {
+      console.log("No factures found.");
+      return null;
+    }
+  } catch (error) {
+    console.error("Error retrieving last Facture_ID:", error);
+    return null;
+  }
+};
+
 //---------------------------------------------------------
 //--FactProd------------------------------------------------------
 const addFactProd = async (factureId, produitId, quantite, prixVente, plat) => {
@@ -1311,4 +1359,6 @@ module.exports = {
   addExpense,
   deleteExpense,
   GetClient_Factures,
+  GetEmployee_Deduction,
+  getLastFactureId,
 };

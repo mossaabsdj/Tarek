@@ -19,6 +19,7 @@ import VaiderIcon from "@/assets/icons/validation.png";
 import VersmentIcon from "@/assets/icons/Versment.png";
 import FactureIcon from "@/assets/icons/invoice.png";
 import {
+  getLastFactureId,
   getProduiNomby_ID,
   GetAll,
   addClient,
@@ -60,6 +61,8 @@ export default function SpanningTable({
   DeleteVersmentMoney,
   Client_ID,
   setcredis,
+  sbn,
+  setsbn,
 }) {
   const scrollViewRef = useRef();
   var NewThead = ["Sum", "Quantite", "Prix", "Nom"];
@@ -202,12 +205,23 @@ export default function SpanningTable({
       //   console.log("return this ===" + JSON.stringify(Statu.Return));
       if (Statu.Return === "true") {
         var object = { Produit: r.Nom, Plat: parseInt(r.Quantite) };
+        Total_Plat.push(object);
       }
-      Total_Plat.push(object);
     }
     setTotalPlatObject(Total_Plat);
     console.log("current==" + JSON.stringify(Total_Plat));
   }
+  useEffect(() => {
+    if (sbn) {
+      GetTotalCreditMoney(Client_ID);
+      GetTotalCreditPlat(Client_ID);
+      setPlatVersment([]);
+      setMoneyVersment([]);
+      setNewcreditmoney(0);
+      setNewcreditPlat(0);
+      setsbn(false);
+    }
+  }, [sbn]);
   useEffect(() => {
     setCurrentClient_ID(Client_ID);
     GetTotalCreditMoney(Client_ID);
@@ -252,13 +266,19 @@ export default function SpanningTable({
     GetFacturTotalPlat();
   }, [rows]);
   useEffect(() => {
+    setNewcreditmoney(Ancientcreditmoney + subtotal(rows));
+  }, [Ancientcreditmoney]);
+  useEffect(() => {
+    //  setNewcreditmoney(Ancientcreditmoney + subtotal(rows));
+  }, [AncientcreditPlat_Object]);
+  useEffect(() => {
     const newobject = AncientcreditPlat_Object.map((obj) => ({ ...obj }));
     newobject.map((m) => {
       delete m.vrsment;
       delete m.credit;
     });
 
-    setTotalPlat(JSON.stringify(TotalPlatObject));
+    setTotalPlat(TotalPlatObject);
     TotalPlatObject.map((tp) => {
       const existingProductIndex = newobject.findIndex(
         (item) => item.Produit === tp.Produit
@@ -299,7 +319,7 @@ export default function SpanningTable({
     setNewcreditPlat(creditOmbalagee);
 
     // Check if the product already exists in the rows
-  }, [TotalPlatObject]);
+  }, [TotalPlatObject, AncientcreditPlat_Object]);
   useEffect(() => {
     const newobject = NewcreditPlatObject.map((obj) => ({ ...obj }));
     if (!PlatVersment[0]) {
@@ -398,6 +418,9 @@ export default function SpanningTable({
   const printFacture = async () => {
     try {
       await printCredit();
+      const r = await getLastFactureId();
+      const id = r + 1;
+      //console.log("R" + (r + 1));
       const htmlFacture = `
       <html>
         <head>
@@ -407,6 +430,7 @@ export default function SpanningTable({
               margin: 0;
               padding: 0;
               direction: rtl;
+
             }
             .ticket {
               width: 100%;
@@ -464,7 +488,8 @@ export default function SpanningTable({
         </head>
         <body>
           <div class="ticket">
-            <div class="header">قلب اللوز طاهر</div>
+            <div class="header">قلب اللوز الطاهر</div>
+              <div class="header">رقم الفاتورة : ${id}</div>
 
             <div class="date-client">
               <div>${new Date().toLocaleDateString("fr-FR")}</div>
@@ -523,6 +548,8 @@ export default function SpanningTable({
               margin: 0;
               padding: 0;
               direction: rtl;
+              border-right: 3px dashed #000;
+
             }
             .credits {
               font-size: 1.8em;
@@ -553,21 +580,21 @@ export default function SpanningTable({
                 {
                   title: "الديون السابقة",
                   items: [
-                    { label: "المال", value: `${Ancientcreditmoney} DA` },
+                    { label: "المال", value: `${Ancientcreditmoney}DA` },
                     { label: "الأطباق", value: AncientcreditPlat },
                   ],
                 },
                 {
                   title: "الديون الجديدة",
                   items: [
-                    { label: "المال", value: `${Newcreditmoney} DA` },
+                    { label: "المال", value: `${Newcreditmoney}DA` },
                     { label: "الأطباق", value: NewcreditPlat },
                   ],
                 },
                 {
                   title: "الدفعات",
                   items: [
-                    { label: "المال", value: `${MoneyVersment} DA` },
+                    { label: "المال", value: `${MoneyVersment}DA` },
                     ...Versments.map((item) => ({
                       label: "الأطباق",
                       value: `${item.Nom} = ${item.Plat}`,
@@ -577,7 +604,7 @@ export default function SpanningTable({
                 {
                   title: "الباقي",
                   items: [
-                    { label: "المال", value: `${Restcreditmoney} DA` },
+                    { label: "المال", value: `${Restcreditmoney}DA` },
                     { label: "الأطباق", value: RestcreditPlat },
                   ],
                 },
@@ -614,15 +641,12 @@ export default function SpanningTable({
     }
   };
   async function SaveAll() {
-    console.log(
-      "1" + Ancientcreditmoney,
-      Newcreditmoney,
-      Restcreditmoney,
-      AncientcreditPlat,
-      NewcreditPlat,
-      RestcreditPlat,
-      TotalPlat
-    );
+    let Total_Plat_String = TotalPlat.map(
+      (tp) => tp["Plat"] + ": " + tp["Produit"]
+    ).join("\n");
+
+    console.log(Total_Plat_String);
+
     setcredis(
       Ancientcreditmoney,
       Newcreditmoney,
@@ -630,16 +654,12 @@ export default function SpanningTable({
       AncientcreditPlat,
       NewcreditPlat,
       RestcreditPlat,
-      TotalPlat,
+      Total_Plat_String,
       true
     );
 
     // await Savefunction();
 
-    setPlatVersment([]);
-    setMoneyVersment([]);
-    setNewcreditmoney(0);
-    setNewcreditPlat(0);
     await GetTotalCreditMoney(CurrentClient_ID);
     await GetTotalCreditPlat(CurrentClient_ID);
   }

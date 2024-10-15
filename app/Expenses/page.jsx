@@ -13,18 +13,21 @@ import {
 } from "react-native";
 import { addExpense, deleteExpense, GetAll } from "@/app/Lib/bdd";
 import * as Print from "expo-print";
-
+import ArabicMonthYearPicker from "./picker";
 const ExpensesPage = () => {
   const [expenses, setExpenses] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalVisible2, setModalVisible2] = useState(false);
+  const [isPickerVisible, setPickerVisible] = useState(false);
 
   const [addExpenseModalVisible, setAddExpenseModalVisible] = useState(false);
   const [newExpense, setNewExpense] = useState({
     Description: "",
     Amount: "",
   });
-  const printMonthlyExpenses = async () => {
+  const handleConfirm = async (month, year) => {
+    setPickerVisible(false);
+
     try {
       // Function to format month and year
       const getMonthYear = (date) => {
@@ -43,7 +46,7 @@ const ExpensesPage = () => {
         return acc;
       }, {});
 
-      // Generate HTML for printing
+      // Generate HTML for printing expenses
       const htmlExpenses = `
       <html>
         <head>
@@ -53,6 +56,9 @@ const ExpensesPage = () => {
               margin: 0;
               padding: 0;
               direction: rtl;
+                 border-right: 3px dashed #000;
+                
+
             }
             .expenses {
               font-size: 1.8em;
@@ -90,7 +96,7 @@ const ExpensesPage = () => {
                   ([monthYear, { total, details }]) => `
                     <tr>
                       <td>${monthYear.replace("-", " / ")}</td>
-                      <td>${total} د.ج</td>
+                      <td>${total.toFixed(2)} د.ج</td>
                     </tr>
                     <tr>
                       <td colspan="2" class="expense-title">التفاصيل</td>
@@ -100,7 +106,7 @@ const ExpensesPage = () => {
                         (expense) => `
                         <tr>
                           <td>${expense.Description}</td>
-                          <td>${expense.Amount} د.ج</td>
+                          <td>${expense.Amount.toFixed(2)} د.ج</td>
                         </tr>
                       `
                       )
@@ -114,6 +120,7 @@ const ExpensesPage = () => {
       </html>
     `;
 
+      // Print the formatted expenses
       await Print.printAsync({
         html: htmlExpenses,
       });
@@ -223,9 +230,9 @@ const ExpensesPage = () => {
       </View>
       <TouchableOpacity
         style={styles.totalButton}
-        onPress={printMonthlyExpenses}
+        onPress={() => setPickerVisible(true)}
       >
-        <Text style={styles.totalButtonText}>طباعة هذا الشهر</Text>
+        <Text style={styles.totalButtonText}>طباعة </Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.totalButton, { backgroundColor: "#ffc107" }]}
@@ -325,6 +332,11 @@ const ExpensesPage = () => {
           </View>
         </View>
       </Modal>
+      <ArabicMonthYearPicker
+        isVisible={isPickerVisible}
+        onClose={() => setPickerVisible(false)}
+        onConfirm={handleConfirm}
+      />
     </View>
   );
 };

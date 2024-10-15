@@ -24,11 +24,14 @@ import {
   GetClient_FacturesMoney,
   GetFacturesVersment,
 } from "@/app/Lib/bdd";
+import { Audio } from "expo-av";
+
 import { Picker } from "@react-native-picker/picker"; // Correctly import Picker
 import FactTable from "@/components/FactTable/page";
 import { useEffect } from "react";
 function Sales() {
   const Thead = ["المجموع", "الكمية", "السعر", "الاسم"];
+  const [sound, setSound] = useState();
 
   const [selectedProduct, setSelectedProduct] = useState();
   const [SelectedproductsPlatNom, setSelectedproductsPlatNom] = useState();
@@ -39,6 +42,7 @@ function Sales() {
   const [NbrPlat, setNbrPlat] = useState("0");
   const [client, setclient] = useState([{}]);
   const [nom, setnom] = useState("");
+  const [Sbn, setSbn] = useState(false);
   const [prenom, setprenom] = useState("");
   const [num, setnum] = useState("");
   const [selectedClient, setselectedClient] = useState();
@@ -60,10 +64,32 @@ function Sales() {
   const [RestcreditPlat1, setRestcreditPlat1] = useState(0);
   const [TotalPlat1, setTotalPlat1] = useState(0);
   const [ready, setready] = useState(false);
-
+  async function playSound() {
+    // Load the sound
+    const { sound } = await Audio.Sound.createAsync(
+      require("@/assets/Add.mp3") // Add your sound file here
+    );
+    setSound(sound);
+    console.log("Playing Sound");
+    await sound.playAsync(); // Play the sound
+  }
   useEffect(() => {
     if (ready) {
-      handleValider();
+      Alert.alert(
+        "تأكيد الفاتورة",
+        "هل أنت متأكد من انهاء الفاتورة؟",
+
+        [
+          { text: "إلغاء", onPress: () => setready(false), style: "cancel" },
+          {
+            text: "تأكيد",
+            onPress: () => handleValider(),
+            style: "destructive",
+          },
+        ],
+        { cancelable: true }
+      );
+      //  handleValider();
     }
   }, [ready]);
 
@@ -126,6 +152,7 @@ function Sales() {
       const selected = { ...selectedProduct, Quantite: Number(quantity) }; // Ensure quantity is a number
       setRows((prevRows) => [...prevRows, selected]); // Add new row to the existing array
     }
+    playSound();
     setCreditMoney(CreditMoney);
     console.log(rows);
   };
@@ -178,7 +205,7 @@ function Sales() {
     if (Montant_total === 0) {
       Alert.alert("", "الرجاء ملأ الفاتورة للقيام بعملية التأكيد");
     } else {
-      setpaymentAmount(Montant_total + "");
+      //  setpaymentAmount(Montant_total + "");
       setVersment_Money(true);
     }
   };
@@ -256,6 +283,7 @@ function Sales() {
       console.log("r" + JSON.stringify(r));
 
       setRows([]);
+      setSbn(true);
     } else {
       Alert.alert("الرجاء ملأ الفاتورة");
     }
@@ -271,6 +299,7 @@ function Sales() {
         ...prevVersmentsMoney,
         Number(paymentAmount),
       ]);
+      setpaymentAmount(0);
     }
     if (NbrPlat > 0) {
       var nom = await getProduiNomby_ID(selectedProduct);
@@ -299,6 +328,7 @@ function Sales() {
         // If the product doesn't exist, add the new object
         setversments((prevversments) => [...prevversments, object]);
       }
+      setNbrPlat(0);
     }
   };
   const DeleteVersment = async (produitId) => {
@@ -582,6 +612,8 @@ function Sales() {
         DeleteVersmentMoney={DeleteVersmentMoney}
         Client_ID={CurrentClient_ID}
         setcredis={updateCredits}
+        sbn={Sbn}
+        setsbn={setSbn}
       />
     </View>
   );
