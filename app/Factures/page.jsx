@@ -8,6 +8,7 @@ import {
   TextInput,
   Button,
   Modal,
+  Alert,
   TouchableOpacity,
 } from "react-native";
 import FactTable from "@/components/FactTable/page";
@@ -23,8 +24,8 @@ import FactureIcon from "@/assets/icons/invoice.png";
 const columns = [
   { key: "client_nom", label: "اسم العميل" },
   { key: "Montant_Total", label: "المبلغ الكلي" },
-  { key: "ValiderMoney", label: "ديون المال" },
-  { key: "ValiderPlat", label: "ديون الأطباق" },
+  { key: "newCreditMoney", label: "ديون المال" },
+  { key: "newCreditPlat", label: "ديون الأطباق" },
   { key: "Date_Creat", label: "التاريخ" },
 ];
 
@@ -32,12 +33,10 @@ const columns = [
 
 const InvoiceConsultation = () => {
   const Thead = ["المجموع", "الكمية", "السعر", "الاسم"];
-
   const [invoices, setInvoices] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [editInvoice, setEditInvoice] = useState(null);
   const [rows, setrows] = useState([]);
-
   const [editInvoiceModel, setEditInvoiceModel] = useState(false);
   const [addInvoiceModel, setAddInvoiceModel] = useState(false);
   const [ConsulterFacture_Model, setConsulterFacture_Model] = useState(false);
@@ -98,14 +97,31 @@ const InvoiceConsultation = () => {
   };
 
   const handleDeleteInvoice = async (id) => {
-    await deleteFacture(id);
-    await GetAllfunction();
+    Alert.alert(
+      "تأكيد الحذف", // Title of the alert
+      "هل أنت متأكد أنك تريد حذف الفاتورة؟", // Message of the alert
+      [
+        {
+          text: "إلغاء", // Cancel button text
+          style: "cancel",
+        },
+        {
+          text: "تأكيد", // Confirm button text
+          onPress: async () => {
+            await deleteFacture(id); // Call delete function if confirmed
+            await GetAllfunction(); // Refresh or get updated data
+          },
+        },
+      ],
+      { cancelable: false } // Prevent closing the dialog by tapping outside
+    );
   };
+
   const ConsulterFacture = async (Facture) => {
     setConsulterFacture_Model(true);
     setEditInvoice(Facture);
     const all = await Get_ALL_Factures_Factprod(Facture.Facture_ID);
-    console.log("editinovice" + JSON.stringify(editInvoice));
+    console.log("editinovice=============" + JSON.stringify(all));
 
     setrows(all);
   };
@@ -148,6 +164,7 @@ const InvoiceConsultation = () => {
         ValiderPlat: fact.ValiderPlat === 1 ? "مدفوع" : "غير مدفوع", // "مدفوع" if ValiderPlat is 1, else "غير مدفوع"
       };
     });
+    processedFactures.sort((a, b) => b.Facture_ID - a.Facture_ID);
 
     setInvoices(processedFactures);
   }
@@ -172,52 +189,36 @@ const InvoiceConsultation = () => {
   }, [ConsulterFacture_Model]);
   return (
     <View style={styles.container}>
-      <View
-        style={{
-          marginBottom: 10,
-          height: 50,
-          borderRadius: 10,
-          display: "flex",
-          flexDirection: "row",
-          justifyContent: "center",
-          alignContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <Text style={styles.header}>متابعة الفواتير</Text>
-        <Image source={FactureIcon} style={styles.icon} />
-      </View>
-
-      <TextInput
-        style={styles.searchInput}
-        placeholder="...البحث عن الفاتورة بالاسم"
-        value={searchQuery}
-        onChangeText={handleSearch}
-      />
-      {ConsulterFacture_Model && (
-        <View
-          style={{
-            position: "absolute",
-            top: 0,
-            left: "0%",
-            zIndex: 1000,
-            width: 60,
-            borderRadius: 20,
-          }}
-        >
-          <Button
-            title="رجوع"
-            onPress={() => setConsulterFacture_Model(false)}
-            color="green"
+      {!ConsulterFacture_Model && (
+        <>
+          <View
+            style={{
+              marginBottom: 10,
+              height: 50,
+              borderRadius: 10,
+              display: "flex",
+              flexDirection: "row",
+              justifyContent: "center",
+              alignContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <Text style={styles.header}>متابعة الفواتير</Text>
+            <Image source={FactureIcon} style={styles.icon} />
+          </View>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="...البحث عن الفاتورة بالاسم"
+            value={searchQuery}
+            onChangeText={handleSearch}
           />
-        </View>
+          <FlatList
+            data={filteredInvoices}
+            renderItem={renderInvoiceItem}
+            keyExtractor={(item) => item.Facture_ID}
+          />
+        </>
       )}
-
-      <FlatList
-        data={filteredInvoices}
-        renderItem={renderInvoiceItem}
-        keyExtractor={(item) => item.Facture_ID}
-      />
 
       {/* Modal for Editing Invoice */}
       {editInvoiceModel && (
@@ -278,7 +279,7 @@ const InvoiceConsultation = () => {
             borderColor: "black",
             borderRadius: 10,
             borderWidth: 2,
-            marginBottom: 200,
+            marginTop: 20,
           }}
         >
           <NewSales
@@ -286,6 +287,24 @@ const InvoiceConsultation = () => {
             rowsinitial={rows}
             nomClient={editInvoice.client_nom}
             Facture_ID_Delete={editInvoice.Facture_ID}
+          />
+        </View>
+      )}
+      {ConsulterFacture_Model && (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: "0%",
+            zIndex: 1000,
+            width: 60,
+            borderRadius: 20,
+          }}
+        >
+          <Button
+            title="رجوع"
+            onPress={() => setConsulterFacture_Model(false)}
+            color="green"
           />
         </View>
       )}

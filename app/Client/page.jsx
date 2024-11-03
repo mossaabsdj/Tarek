@@ -17,6 +17,7 @@ import {
   updateFactProdPlatDecrement,
   updateFactProdPlatIncrement,
   GetClient_Factures,
+  getClientNameBy_ID,
 } from "@/app/Lib/bdd";
 import ArabicMonthYearPicker from "./picker";
 
@@ -115,7 +116,10 @@ const ClientConsultation = () => {
     { Nom: "قلب اللوز 60/80", Prix: 25, Produit_ID: 1, Return: "true" },
     { Nom: "قلب اللوز 50/30", Prix: 30, Produit_ID: 2, Return: "true" },
   ]);
-  const [selectedProduct, setSelectedProduct] = useState(produit[0].Produit_ID);
+  const [produit_True, setproduit_true] = useState([{}]);
+  const [selectedProduct, setSelectedProduct] = useState(
+    produit_True[0].Produit_ID
+  );
   const [facturesplat, setFacturesplat] = useState(initialFactures);
   const [factures, setFactures] = useState(initialFactures);
   const [factures_To_Print, setfactures_To_Print] = useState([]);
@@ -153,7 +157,11 @@ const ClientConsultation = () => {
       year
     ); // For October 2024
     //  console.log(filteredFactures);
-    await printFactures(filteredFactures);
+    if (!filteredFactures[0]) {
+      Alert.alert("لاتوجد فواتير ");
+    } else {
+      await printFactures(filteredFactures);
+    }
   };
   const arabicMonths = [
     "يناير",
@@ -172,7 +180,8 @@ const ClientConsultation = () => {
   async function printFactures(factures) {
     // Initialize total amount variable
     let totalMontant = 0;
-
+    var r = await getClientNameBy_ID(factures[0].Client_ID);
+    var FullName = r[0].Nom + " " + r[0].Prenom;
     // Create HTML content to format the factures for printing in Arabic (RTL)
     let htmlContent = `
     <html dir="rtl" lang="ar">
@@ -204,7 +213,12 @@ const ClientConsultation = () => {
         </style>
       </head>
       <body>
-        <h1 style="font-size: 49px;">تتفاصيل فوانتير الشهر:  </h1> <!-- Larger heading -->
+       <div style="display: flex; justify-content: space-between; flex-direction: row;">
+  <h1 style="font-size: 49px;">تتفاصيل فواتير الشهر: </h1>
+  <h1 style="font-size: 49px;">${FullName}</h1>
+</div>
+
+
         <table>
           <tr>
             <td colspan="6">------------------------------------------------------------------------------------------------------</td>
@@ -212,9 +226,9 @@ const ClientConsultation = () => {
           <tr>
             <th>الرقم</th>
             <th>التاريخ</th>
-            <th>الرصيد السابق (النقود)</th>
+            <th> المجموع (النقود)</th>
             <th>الرصيد المتبقي (النقود)</th>
-            <th>الرصيد السابق (الطبق)</th>
+            <th>المجموع  (الطبق)</th>
             <th>الرصيد المتبقي (الطبق)</th>
           </tr>
           <tr>
@@ -232,6 +246,7 @@ const ClientConsultation = () => {
         restCreditMoney,
         ancientCreditPlat,
         restCreditPlat,
+        totalPlat,
       } = facture;
 
       // Add the actual data row
@@ -239,9 +254,9 @@ const ClientConsultation = () => {
       <tr>
         <td>${Facture_ID}.0</td>
         <td>${Date_Creat}</td>
-        <td>${ancientCreditMoney}</td>
+        <td>${Montant_Total}</td>
         <td>${restCreditMoney}</td>
-        <td>${ancientCreditPlat}</td>
+        <td>${totalPlat}</td>
         <td>${restCreditPlat}</td>
       </tr>
       <tr>
@@ -427,9 +442,25 @@ const ClientConsultation = () => {
     seteditClientmodel(false);
   };
   const Delete = async (client) => {
-    await deleteClient(client.Client_ID);
-    await GetTotalCreditMoney();
-    await GetTotalCreditPlat();
+    Alert.alert(
+      "تأكيد الحذف", // Title of the alert
+      "هل أنت متأكد أنك تريد حذف هذا العميل؟", // Message asking for confirmation
+      [
+        {
+          text: "إلغاء", // Cancel button text
+          style: "cancel",
+        },
+        {
+          text: "تأكيد", // Confirm button text
+          onPress: async () => {
+            await deleteClient(client.Client_ID); // Delete client when confirmed
+            await GetTotalCreditMoney(); // Update total credit money
+            await GetTotalCreditPlat(); // Update total credit plat
+          },
+        },
+      ],
+      { cancelable: false } // Prevent closing the dialog by tapping outside
+    );
   };
   const handelAddVersment = async () => {
     console.log(selectedFacture, paymentAmount);
@@ -439,7 +470,7 @@ const ClientConsultation = () => {
     // VersmentFacture();
   };
   const handelAddVersmentPlat = async () => {
-    console.log(produit, selectedFacture, selectedProduct, NbrPlat);
+    console.log(selectedFacture, selectedProduct, NbrPlat);
     if (!NbrPlat) {
       Alert.alert("الرجاء ادخال عدد الأطباق");
     } else if (!selectedProduct) {
@@ -870,10 +901,23 @@ const ClientConsultation = () => {
     setEditClient(client);
     setPlatCredit(true);
   };
+  async function GetProduct() {
+    var result = await GetAll("produit", setproduit);
+
+    var trueProducts = [];
+    result.map((r) => {
+      if (r.Return === "true") {
+        console.log("rrrrrr" + JSON.stringify(r));
+        trueProducts.push(r);
+      }
+    });
+    setproduit_true(trueProducts);
+    console.log("products[0].Nom" + JSON.stringify(trueProducts[0]));
+    // setSelectedProduct(trueProducts[0].Nom);
+  }
   useEffect(() => {
     if (Versment_Plat) {
-      GetAll("produit", setproduit);
-      //  console.log("selectedFacture" + selectedFacture);
+      GetProduct(); //  console.log("selectedFacture" + selectedFacture);
       VersmentFacturePlat();
     }
     if (!Versment_Plat) {
@@ -1157,7 +1201,12 @@ const ClientConsultation = () => {
                 onValueChange={(itemValue) => setSelectedProduct(itemValue)}
                 itemStyle={styles.pickeritem}
               >
-                {produit.map((product) => (
+                <Picker.Item
+                  key={0}
+                  label={"اختر نوع الطبق"}
+                  value={0} // Use product name as value
+                />
+                {produit_True.map((product) => (
                   <Picker.Item
                     key={product.Nom}
                     label={product.Nom}

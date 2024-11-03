@@ -31,7 +31,6 @@ import Enployee from "@/app/Employe/page";
 import Facture from "@/app/Factures/page";
 import Expenses from "@/app/Expenses/page";
 const { width: screenWidth } = Dimensions.get("window");
-
 const SliderMenu = () => {
   const [open, setOpen] = useState(false);
   const slideAnim = useRef(new Animated.Value(screenWidth * 0.9)).current; // Use 80% of screen width
@@ -42,7 +41,6 @@ const SliderMenu = () => {
   const [ClientPage, setClient] = useState(false);
   const [FacturesPage, setFactures] = useState(false);
   const [ProduitPage, setProduit] = useState(false);
-
   const sliderFunction = () => {
     if (open) {
       Animated.timing(slideAnim, {
@@ -75,7 +73,6 @@ const SliderMenu = () => {
   const Display_Enployee = () => {
     setWelcomPaged(false);
     setExpensesPage(false);
-
     setSales(false);
     setClient(false);
     setFactures(false);
@@ -86,7 +83,6 @@ const SliderMenu = () => {
   const Display_Client = () => {
     setWelcomPaged(false);
     setExpensesPage(false);
-
     setSales(false);
     setClient(true);
     setFactures(false);
@@ -138,7 +134,6 @@ const SliderMenu = () => {
 
     sliderFunction();
   };
-
   return (
     <View>
       <View>
@@ -158,8 +153,8 @@ const SliderMenu = () => {
                 <Image source={StoreIcon} style={styles.image} />
                 {open && (
                   <View style={styles.textHeader}>
-                    <Text style={styles.name}>محل</Text>
-                    <Text style={styles.profession}>طاهر</Text>
+                    <Text style={styles.name}>حلويات تقليدية</Text>
+                    <Text style={styles.profession}>الطاهر</Text>
                   </View>
                 )}
               </View>

@@ -19,6 +19,7 @@ import VaiderIcon from "@/assets/icons/validation.png";
 import VersmentIcon from "@/assets/icons/Versment.png";
 import FactureIcon from "@/assets/icons/invoice.png";
 import {
+  getClientById,
   getLastFactureId,
   getProduiNomby_ID,
   GetAll,
@@ -295,12 +296,6 @@ export default function SpanningTable({
           newobject[existingProductIndex] = { Produit: tp.Produit, Plat: 0 }; // Initialize the product object
         }
 
-        console.log(
-          "traitment-----" +
-            newobject[existingProductIndex].Plat +
-            "---" +
-            Number(tp.Plat)
-        );
         newobject[existingProductIndex].Plat += Number(tp.Plat);
       } else {
         newobject.push({ Produit: tp.Produit, Plat: tp.Plat });
@@ -342,12 +337,6 @@ export default function SpanningTable({
             newobject[existingProductIndex] = { Produit: tp.Nom, Plat: 0 }; // Initialize the product object
           }
 
-          console.log(
-            "traitment-----" +
-              newobject[existingProductIndex].Plat +
-              "---" +
-              Number(tp.Plat)
-          );
           newobject[existingProductIndex].Plat -= Number(tp.Plat);
         } else {
           newobject.push({ Produit: tp.Nom, Plat: tp.Plat });
@@ -416,6 +405,11 @@ export default function SpanningTable({
   };
   const invoiceSubtotal = subtotal(rows);
   const printFacture = async () => {
+    var FullNom = "";
+    const r = await getClientById(CurrentClient_ID);
+    FullNom = r[0].Nom + " " + r[0].Prenom;
+
+    // console.log(JSON.stringify(r));
     try {
       await printCredit();
       const r = await getLastFactureId();
@@ -493,7 +487,7 @@ export default function SpanningTable({
 
             <div class="date-client">
               <div>${new Date().toLocaleDateString("fr-FR")}</div>
-              <div>اسم العميل: ${client_name}</div>
+              <div>اسم العميل: ${FullNom}</div>
             </div>
 
             <div class="separator">- - - - - - - - - - - - - - - - - - - - - -</div>
@@ -549,6 +543,7 @@ export default function SpanningTable({
               padding: 0;
               direction: rtl;
               border-right: 3px dashed #000;
+              height:10px;
 
             }
             .credits {
@@ -640,12 +635,206 @@ export default function SpanningTable({
       console.error("Error printing credit: ", error);
     }
   };
+  const printFullFacture = async () => {
+    var FullNom = "";
+    const client = await getClientById(CurrentClient_ID);
+    FullNom = client[0].Nom + " " + client[0].Prenom;
+
+    try {
+      const lastFacture = await getLastFactureId();
+      const factureId = lastFacture + 1;
+
+      // Generate the credit HTML section
+      const htmlCredit = `
+      <div class="credits">
+        <table>
+          ${[
+            {
+              title: "الديون السابقة",
+              items: [
+                { label: "المال", value: `${Ancientcreditmoney}DA` },
+                { label: "الأطباق", value: AncientcreditPlat },
+              ],
+            },
+            {
+              title: "الديون الجديدة",
+              items: [
+                { label: "المال", value: `${Newcreditmoney}DA` },
+                { label: "الأطباق", value: NewcreditPlat },
+              ],
+            },
+            {
+              title: "الدفعات",
+              items: [
+                { label: "المال", value: `${MoneyVersment}DA` },
+                ...Versments.map((item) => ({
+                  label: "الأطباق",
+                  value: `${item.Nom} = ${item.Plat}`,
+                })),
+              ],
+            },
+            {
+              title: "الباقي",
+              items: [
+                { label: "المال", value: `${Restcreditmoney}DA` },
+                { label: "الأطباق", value: RestcreditPlat },
+              ],
+            },
+          ]
+            .map(
+              (section) => `
+            <tr class="credit-section">
+              <th colspan="2" class="credit-title">${section.title}</th>
+            </tr>
+            ${section.items
+              .map(
+                (item) => `
+              <tr>
+                <th>${item.label}</th>
+                <td>${item.value}</td>
+              </tr>
+            `
+              )
+              .join("")}
+          `
+            )
+            .join("")}
+        </table>
+      </div>
+    `;
+
+      // Generate the full facture HTML only if invoiceSubtotal is not 0
+      const htmlFacture =
+        invoiceSubtotal !== 0
+          ? `
+      <div class="ticket">
+        
+
+        <div class="items">
+          <div class="item">
+            <span>الرقم</span>
+            <span>المنتج</span>
+            <span>السعر</span>
+            <span>الكمية</span>
+            <span>المجموع</span>
+          </div>
+          ${rows
+            .map(
+              (row, index) => `
+            <div class="item">
+              <span>${index + 1}</span>
+              <span>${row.Nom}</span>
+              <span>${row.Prix}DA</span>
+              <span>${row.Quantite}</span>
+              <span>${row.Sum}DA</span>
+            </div>
+          `
+            )
+            .join("")}
+        </div>
+
+        <div class="separator">- - - - - - - - - - - - - - - - - - - - - -</div>
+        <div class="total">المجموع: ${invoiceSubtotal}.00DA</div>
+      </div>
+    `
+          : "";
+
+      // Combine the two sections into one HTML content based on invoiceSubtotal
+      const htmlContent = `
+      <html>
+        <head>
+          <style>
+            body {
+              font-family: 'Tahoma', 'Arial', sans-serif;
+              margin: 0;
+              padding: 0;
+              direction: rtl;
+            }
+            .ticket, .credits {
+              width: 100%;
+              box-sizing: border-box;
+              padding: 0;
+            }
+            h1, .header, .separator, .date-client, .items, .item, .total, .credit-title, table, td, th {
+              margin: 0;
+              padding: 0;
+            }
+            .header {
+              font-size: 2.5em;
+              text-align: center;
+              padding-bottom: 5px;
+            }
+            .separator {
+              text-align: center;
+              font-size: 2em;
+              margin: 10px 0;
+            }
+            .date-client, .items, .credits {
+              font-size: 2em;
+              margin-bottom: 10px;
+              padding: 0 10px;
+            }
+            .items .item {
+              display: flex;
+              justify-content: space-between;
+              font-size: 1.4em;
+            }
+            .total {
+              font-size: 4em;
+              text-align: center;
+              margin-top: 10px;
+            }
+            table {
+              width: 100%;
+              font-size: 1.3em;
+              border-collapse: collapse;
+              margin-top: 20px;
+            }
+            td, th {
+              padding: 5px;
+              border-bottom: 1px dashed #000;
+            }
+            .credit-title {
+              font-weight: bold;
+              font-size: 1.5em;
+              text-align: center;
+            }
+              .date-client{
+              display: flex;
+              justify-content: space-between;}
+          </style>
+        </head>
+        <body>
+         <div class="header">قلب اللوز الطاهر</div>
+        <div class="header">رقم الفاتورة : ${factureId}</div>
+
+        <div class="date-client">
+          <div>${new Date().toLocaleDateString("fr-FR")}</div>
+          <div>اسم العميل: ${FullNom}</div>
+        </div>
+
+        <div class="separator">- - - - - - - - - - - - - - - - - - - - - -</div>
+          ${
+            htmlFacture + htmlCredit
+          } <!-- Only credit section if invoiceSubtotal is 0 -->
+        </body>
+      </html>
+    `;
+
+      await Print.printAsync({
+        html: htmlContent,
+      });
+    } catch (error) {
+      console.error("Error printing full facture: ", error);
+    }
+  };
+
   async function SaveAll() {
     let Total_Plat_String = TotalPlat.map(
       (tp) => tp["Plat"] + ": " + tp["Produit"]
     ).join("\n");
 
-    console.log(Total_Plat_String);
+    // console.log(Total_Plat_String);
 
     setcredis(
       Ancientcreditmoney,
@@ -681,7 +870,7 @@ export default function SpanningTable({
             <Image source={VersmentIcon} style={styles.icon} />
           </Pressable>
 
-          <Pressable style={styles.iconButton} onPress={printFacture}>
+          <Pressable style={styles.iconButton} onPress={printFullFacture}>
             <Image source={PrintIcon} style={styles.icon} />
           </Pressable>
 

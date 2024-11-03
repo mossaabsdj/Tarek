@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   View,
   Text,
@@ -32,12 +32,12 @@ import { useEffect } from "react";
 function Sales() {
   const Thead = ["المجموع", "الكمية", "السعر", "الاسم"];
   const [sound, setSound] = useState();
-
   const [selectedProduct, setSelectedProduct] = useState();
   const [SelectedproductsPlatNom, setSelectedproductsPlatNom] = useState();
   const [versments, setversments] = useState([]);
   const [VersmentsMoney, setVersmentsMoney] = useState([]);
   const [products, setproduct] = useState([{}]);
+  const [products_True, setproduct_True] = useState([]);
   const [Status, setStatus] = useState([{ S: "s" }]);
   const [NbrPlat, setNbrPlat] = useState("0");
   const [client, setclient] = useState([{}]);
@@ -64,6 +64,7 @@ function Sales() {
   const [RestcreditPlat1, setRestcreditPlat1] = useState(0);
   const [TotalPlat1, setTotalPlat1] = useState(0);
   const [ready, setready] = useState(false);
+  const QuantiteField = useRef();
   async function playSound() {
     // Load the sound
     const { sound } = await Audio.Sound.createAsync(
@@ -75,6 +76,7 @@ function Sales() {
   }
   useEffect(() => {
     if (ready) {
+      setready(false);
       Alert.alert(
         "تأكيد الفاتورة",
         "هل أنت متأكد من انهاء الفاتورة؟",
@@ -120,6 +122,9 @@ function Sales() {
   };
 
   const handleAdd = () => {
+    if (QuantiteField.current) {
+      QuantiteField.current.blur();
+    }
     // Find the selected product by its name
     const selectedProduct = products.find(
       (product) => product.Nom === selectedProductName
@@ -201,13 +206,10 @@ function Sales() {
   };
   const ShowVersment = async () => {
     const Montant_total = rows.reduce((total, item) => total + item.Sum, 0);
-    console.log("rows" + JSON.stringify(rows));
-    if (Montant_total === 0) {
-      Alert.alert("", "الرجاء ملأ الفاتورة للقيام بعملية التأكيد");
-    } else {
-      //  setpaymentAmount(Montant_total + "");
-      setVersment_Money(true);
-    }
+    // console.log("rows" + JSON.stringify(rows));
+
+    setpaymentAmount(Montant_total + "");
+    setVersment_Money(true);
   };
   const handleValider = async () => {
     var plat = 0;
@@ -252,7 +254,7 @@ function Sales() {
         RestcreditPlat1,
         TotalPlat1
       );
-      console.log("Facture_ID" + Facture_ID);
+      // console.log("Facture_ID" + Facture_ID);
       var ids = [];
       for (let r of rows) {
         let plat2 = 0;
@@ -260,16 +262,16 @@ function Sales() {
         //   console.log("return this ===" + JSON.stringify(Statu.Return));
         if (Statu.Return === "true") {
           plat2 = plat2 + parseInt(r.Quantite);
-          const re = await addFactProd(
-            Facture_ID,
-            r.Produit_ID,
-            r.Quantite,
-            r.Prix,
-            plat2
-          );
-
-          ids.push(re);
         }
+        const re = await addFactProd(
+          Facture_ID,
+          r.Produit_ID,
+          r.Quantite,
+          r.Prix,
+          plat2
+        );
+
+        ids.push(re);
       }
       for (let vp of versments) {
         await addVersmentPlat(Facture_ID, vp.Produit_ID, vp.Plat);
@@ -285,7 +287,34 @@ function Sales() {
       setRows([]);
       setSbn(true);
     } else {
-      Alert.alert("الرجاء ملأ الفاتورة");
+      const Facture_ID = await addFacture(
+        CurrentClient_ID,
+        0,
+        false,
+        false,
+        plat,
+        Ancientcreditmoney1,
+        Newcreditmoney1,
+        Restcreditmoney1,
+        AncientcreditPlat1,
+        NewcreditPlat1,
+        RestcreditPlat1,
+        TotalPlat1
+      );
+      for (let vp of versments) {
+        await addVersmentPlat(Facture_ID, vp.Produit_ID, vp.Plat);
+      }
+      var factversment = VersmentsMoney.reduce(
+        (total, item) => total + item,
+        0
+      );
+
+      const r = await addVersment(Facture_ID, factversment);
+      console.log("r" + JSON.stringify(r));
+
+      setRows([]);
+      setSbn(true);
+      // Alert.alert("الرجاء ملأ الفاتورة");
     }
     setversments([]);
     setVersmentsMoney([]);
@@ -300,6 +329,7 @@ function Sales() {
         Number(paymentAmount),
       ]);
       setpaymentAmount(0);
+      setVersment_Money(false);
     }
     if (NbrPlat > 0) {
       var nom = await getProduiNomby_ID(selectedProduct);
@@ -329,6 +359,7 @@ function Sales() {
         setversments((prevversments) => [...prevversments, object]);
       }
       setNbrPlat(0);
+      setVersment_Money(false);
     }
   };
   const DeleteVersment = async (produitId) => {
@@ -405,12 +436,25 @@ function Sales() {
       GetAll("client", setclient);
     }
   }, [model]);
+  useEffect(() => {
+    if (QuantiteField.current) {
+      QuantiteField.current.focus();
+    }
+  }, [selectedProductName]);
   async function GetProducts() {
     if (!model) {
       var result = await GetAll("produit", setproduct);
       if (!result[0]) {
         Alert.alert("لايوجد منتج", " الرجاء اضافة منتج من القائمة=> المنتجات");
       } else {
+        var trueProducts = [];
+        result.map((r) => {
+          if (r.Return === "true") {
+            console.log("rrrrrr" + JSON.stringify(r));
+            trueProducts.push(r);
+          }
+        });
+        setproduct_True(trueProducts);
         console.log("products[0].Nom" + JSON.stringify(result[0]));
         setSelectedProductName(result[0].Nom);
       }
@@ -458,7 +502,7 @@ function Sales() {
                   label={"اختر نوع الطبق"}
                   value={0} // Use product name as value
                 />
-                {products.map((product) => (
+                {products_True.map((product) => (
                   <Picker.Item
                     key={product.Nom}
                     label={product.Nom}
@@ -590,6 +634,7 @@ function Sales() {
             keyboardType="number-pad"
             style={styles.input}
             value={quantity}
+            ref={QuantiteField}
             onChangeText={setQuantity}
           />
 

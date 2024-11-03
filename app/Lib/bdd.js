@@ -376,6 +376,23 @@ async function GetClient_Factures(id) {
     console.error("Error fetching product status:", error);
   }
 }
+async function GetFacture_ByID(id) {
+  try {
+    // Prepare the SQL statement
+    const statement = await (
+      await db
+    ).prepareAsync("SELECT * FROM facture WHERE Facture_ID = $id ");
+
+    // Execute the statement with the product name
+    const result = await statement.executeAsync({ $id: id });
+    const r = result.getAllAsync();
+    return r;
+    // Finalize the statement to release resources
+    // await statement.finalize();
+  } catch (error) {
+    console.error("Error fetching product status:", error);
+  }
+}
 async function GetEmployee_Deduction(id) {
   try {
     // Prepare the SQL statement
@@ -554,6 +571,35 @@ const getClientByName = async (nom, prenom) => {
     throw error; // Rethrow the error for handling outside
   }
 };
+const getClientNameBy_ID = async (id) => {
+  try {
+    const dbInstance = await db; // Await the database instance
+
+    // Prepare the SQL query with placeholders
+    const statement = await dbInstance.prepareAsync(`
+      SELECT * FROM Client
+      WHERE Client_ID = ? ;
+    `);
+
+    // Execute the prepared statement with the provided parameters
+    const r = await statement.executeAsync([id]);
+
+    // Retrieve all results using getAllAsync
+    const result = await r.getAllAsync();
+
+    // Check if any clients were found
+    if (result.length > 0) {
+      //  console.log("Clients found:", result);
+      return result; // Return the array of found clients
+    } else {
+      // console.log("No clients found with the provided name.");
+      return null; // Return null if no clients are found
+    }
+  } catch (error) {
+    console.error("Error fetching clients by name:", error);
+    throw error; // Rethrow the error for handling outside
+  }
+};
 
 //--Produit---------------------------------------------------
 const addProduit = async (nom, prix, returnValue) => {
@@ -671,6 +717,26 @@ const deleteEmployee = async (employeeId) => {
 };
 //---------------------------------------------------------
 //--Client------------------------------------------------------
+const getClientById = async (clientId) => {
+  try {
+    const result = await (
+      await db
+    ).getAllAsync(`SELECT Nom, Prenom FROM Client WHERE Client_ID = ?`, [
+      clientId,
+    ]);
+
+    if (result) {
+      console.log(`Client found: ${result.Nom} ${result.Prenom}`);
+      return result;
+    } else {
+      console.log(`No client found with ID: ${clientId}`);
+      return null;
+    }
+  } catch (error) {
+    console.error("Error retrieving client:", error);
+  }
+};
+
 const addClient = async (nom, prenom, num) => {
   try {
     const r = await (
@@ -1361,4 +1427,7 @@ module.exports = {
   GetClient_Factures,
   GetEmployee_Deduction,
   getLastFactureId,
+  getClientNameBy_ID,
+  getClientById,
+  GetFacture_ByID,
 };
