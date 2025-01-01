@@ -49,6 +49,10 @@ export default function HomeScreen() {
     }
   }
   useEffect(() => {
+    if (!I18nManager.isRTL) {
+      I18nManager.forceRTL(false);
+      I18nManager.allowRTL(true);
+    }
     first_time();
     check();
 
@@ -57,11 +61,8 @@ export default function HomeScreen() {
     // const r = GetAll("produit");
     // console.log("ssssss" + JSON.stringify(r));
     //alterFactureTable();
-    if (!I18nManager.isRTL) {
-      I18nManager.forceRTL(true);
-      I18nManager.allowRTL(true);
-    }
   }, []);
+
   const [passcode, setPasscode] = useState("");
 
   const handleConfirm = async () => {

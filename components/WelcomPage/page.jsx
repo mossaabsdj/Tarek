@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Image,
   View,
@@ -7,10 +7,14 @@ import {
   StyleSheet,
   Alert,
   ImageBackground,
+  I18nManager,
 } from "react-native";
+import * as Updates from "expo-updates"; // Import expo-updatesimport Stats from "@/app/Stats/page";
 import appicon from "@/assets/icons/app.png";
+import Stats from "@/app/Stats/page";
 import welcompageImage from "@/assets/images/welcom.jpg";
 const WelcomePage = ({ functionStart }) => {
+  const [StatsPage, setStatsPage] = useState(false);
   const handleGetStarted = () => {
     Alert.alert("أهلاً بك!", "لقد بدأت رحلتك."); // Display an alert when the button is pressed
   };
@@ -50,21 +54,35 @@ const WelcomePage = ({ functionStart }) => {
   };
 
   return (
-    <ImageBackground
-      source={welcompageImage} // Local image or use a URL
-      style={styles.background}
-    >
-      <View style={styles.container}>
-        <Text style={styles.welcomeText}>مرحبا بك في تطبيقنا</Text>
-        <Text style={styles.description}>
-          نحن سعداء بانضمامك إلينا. استعد لتجربة مميزة!
-        </Text>
-        <Text style={styles.dateText}>{getCurrentDateInArabic()}</Text>
-        <TouchableOpacity style={styles.button} onPress={functionStart}>
-          <Text style={styles.buttonText}>ابدأ الآن</Text>
-        </TouchableOpacity>
-      </View>
-    </ImageBackground>
+    <View>
+      {StatsPage ? (
+        <Stats />
+      ) : (
+        <ImageBackground
+          source={welcompageImage} // Local image or use a URL
+          style={styles.background}
+        >
+          <View style={styles.container}>
+            <Text style={styles.welcomeText}>مرحبا بك في تطبيقنا</Text>
+            <Text style={styles.description}>
+              نحن سعداء بانضمامك إلينا. استعد لتجربة مميزة!
+            </Text>
+            <Text style={styles.dateText}>{getCurrentDateInArabic()}</Text>
+            <TouchableOpacity style={styles.button} onPress={functionStart}>
+              <Text style={styles.buttonText}>ابدأ الآن</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => {
+                setStatsPage(true);
+              }}
+            >
+              <Text style={styles.buttonText}> حسابات</Text>
+            </TouchableOpacity>
+          </View>
+        </ImageBackground>
+      )}
+    </View>
   );
 };
 
@@ -96,6 +114,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   dateText: {
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignContent: "center",
     fontSize: 16,
     color: "#333",
     textAlign: "center",

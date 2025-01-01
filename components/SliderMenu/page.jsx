@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
   Easing,
   Dimensions,
   ImageBackground,
+  I18nManager,
+  Alert,
 } from "react-native";
 import logoutIcon from "@/assets/icons/logout.png";
 import FlechIcon from "@/assets/icons/slide-right.png";
@@ -31,6 +33,7 @@ import Enployee from "@/app/Employe/page";
 import Facture from "@/app/Factures/page";
 import Expenses from "@/app/Expenses/page";
 const { width: screenWidth } = Dimensions.get("window");
+
 const SliderMenu = () => {
   const [open, setOpen] = useState(false);
   const slideAnim = useRef(new Animated.Value(screenWidth * 0.9)).current; // Use 80% of screen width
@@ -131,9 +134,9 @@ const SliderMenu = () => {
     setEnployee(false);
     setProduit(false);
     setExpensesPage(true);
-
     sliderFunction();
   };
+
   return (
     <View>
       <View>

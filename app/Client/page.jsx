@@ -156,11 +156,27 @@ const ClientConsultation = () => {
       month,
       year
     ); // For October 2024
-    //  console.log(filteredFactures);
     if (!filteredFactures[0]) {
       Alert.alert("لاتوجد فواتير ");
     } else {
-      await printFactures(filteredFactures);
+      console.log("rrrrrr" + JSON.stringify(filteredFactures));
+
+      Alert.alert(
+        "تنبيه", // Alert title
+        "اختر خيارًا للمتابعة", // Alert message
+        [
+          {
+            text: "الأطباق", // First button title
+            onPress: () => printFacturesPlat(filteredFactures),
+          },
+          {
+            text: "المال", // Second button title
+            onPress: () => printFacturesMoney(filteredFactures),
+          },
+        ],
+        { cancelable: true }
+      );
+      //   await printFacturesMoney(filteredFactures);
     }
   };
   const arabicMonths = [
@@ -177,12 +193,13 @@ const ClientConsultation = () => {
     "نوفمبر",
     "ديسمبر",
   ];
-  async function printFactures(factures) {
+  async function printFacturesMoney(factures) {
     // Initialize total amount variable
     let totalMontant = 0;
     var r = await getClientNameBy_ID(factures[0].Client_ID);
     var FullName = r[0].Nom + " " + r[0].Prenom;
-    // Create HTML content to format the factures for printing in Arabic (RTL)
+    // Create HTML content to format the factures for printing in Arabic (RTL)    border-right: 15px dashed #000;
+
     let htmlContent = `
     <html dir="rtl" lang="ar">
       <head>
@@ -193,7 +210,6 @@ const ClientConsultation = () => {
             margin: 20px;
             text-align: right; 
             font-size: 18px; /* Increased font size */
-              border-right: 15px dashed #000;
 
             }
           table { 
@@ -226,9 +242,125 @@ const ClientConsultation = () => {
           <tr>
             <th>الرقم</th>
             <th>التاريخ</th>
-            <th> المجموع (النقود)</th>
+            <th>الدين السابق (النقود)</th>
+            <th>المجموع  (النقود)</th>
+              <th>الدفعات  (النقود)</th>
             <th>الرصيد المتبقي (النقود)</th>
+          </tr>
+          <tr>
+            <td colspan="6">------------------------------------------------------------------------------------------------------</td>
+          </tr>
+  `;
+
+    // Add rows for each facture and sum up the total amounts
+    factures.forEach((facture) => {
+      const {
+        Facture_ID,
+        Date_Creat,
+        Montant_Total, // Make sure Montant_Total is included
+        ancientCreditMoney,
+        restCreditMoney,
+        ancientCreditPlat,
+        Versment_Plat,
+        restCreditPlat,
+        totalPlat,
+        newCreditMoney,
+        Total_Versment,
+      } = facture;
+
+      // Add the actual data row
+      htmlContent += `
+      <tr>
+        <td>${Facture_ID}.0</td>
+        <td>${Date_Creat}</td>
+        <td>${ancientCreditMoney}</td>
+        <td>${Montant_Total}</td>
+      <td>${Total_Versment}</td>
+        <td>${restCreditMoney}</td>
+      </tr>
+      <tr>
+        <td colspan="6">------------------------------------------------------------------------------------------------------</td>
+      </tr>
+    `;
+
+      // Accumulate the total for Montant_Total
+      totalMontant += Montant_Total || 0; // Ensure that if Montant_Total is undefined, 0 is added
+    });
+
+    // Add the total montant at the end of the table
+    htmlContent += `
+    <tr>
+  <td colspan="6" style="text-align: center; font-weight: bold; font-size: 48px;">المجموع الإجمالي للنقود: ${totalMontant}</td>
+</tr>
+    `;
+
+    // Close HTML content
+    htmlContent += `
+        </table>
+      </body>
+    </html>
+  `;
+
+    // Use expo-print to print the content
+    try {
+      await Print.printAsync({
+        html: htmlContent,
+      });
+    } catch (error) {
+      console.error("Print failed:", error);
+    }
+  }
+  async function printFacturesPlat(factures) {
+    // Initialize total amount variable
+    let totalMontant = 0;
+    var r = await getClientNameBy_ID(factures[0].Client_ID);
+    var FullName = r[0].Nom + " " + r[0].Prenom;
+    // Create HTML content to format the factures for printing in Arabic (RTL)
+    let htmlContent = `
+    <html dir="rtl" lang="ar">
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { 
+            font-family: 'Arial', sans-serif; 
+            margin: 20px;
+            text-align: right; 
+            font-size: 18px; /* Increased font size */
+
+            }
+          table { 
+            width: 100%; 
+            margin-top: 20px; 
+            direction: rtl; 
+            font-size: 5px; /* Increased font size for table */
+          }
+          th, td { 
+            padding: 12px; /* Increased padding */
+            text-align: right; 
+            font-size: 32px; /* Increased font size for table */
+          }
+          th { 
+            background-color: #f2f2f2; 
+          }
+        </style>
+      </head>
+      <body>
+       <div style="display: flex; justify-content: space-between; flex-direction: row;">
+  <h1 style="font-size: 49px;">تتفاصيل فواتير الشهر: </h1>
+  <h1 style="font-size: 49px;">${FullName}</h1>
+</div>
+
+
+        <table>
+          <tr>
+            <td colspan="6">------------------------------------------------------------------------------------------------------</td>
+          </tr>
+          <tr>
+            <th>الرقم</th>
+            <th>التاريخ</th>
+            <th> الدين السابق (الطبق)</th>
             <th>المجموع  (الطبق)</th>
+            <th>الدفعات  (الطبق)</th>
             <th>الرصيد المتبقي (الطبق)</th>
           </tr>
           <tr>
@@ -245,18 +377,28 @@ const ClientConsultation = () => {
         ancientCreditMoney,
         restCreditMoney,
         ancientCreditPlat,
+        Versment_Plat,
         restCreditPlat,
         totalPlat,
       } = facture;
-
+      var creditOmbalagee = "";
+      if (Versment_Plat) {
+        Versment_Plat.map((cp, i) => {
+          if (i === 0) {
+          } else {
+            creditOmbalagee = creditOmbalagee + "\n";
+          }
+          creditOmbalagee = creditOmbalagee + cp.Plat + ":" + cp.Produit + "  ";
+        });
+      }
       // Add the actual data row
       htmlContent += `
       <tr>
         <td>${Facture_ID}.0</td>
         <td>${Date_Creat}</td>
-        <td>${Montant_Total}</td>
-        <td>${restCreditMoney}</td>
+        <td>${ancientCreditPlat}</td>
         <td>${totalPlat}</td>
+         <td>${creditOmbalagee}</td>
         <td>${restCreditPlat}</td>
       </tr>
       <tr>

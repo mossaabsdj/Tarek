@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   Alert,
   Image,
+  I18nManager,
 } from "react-native";
 // Column names
 import {
@@ -116,10 +117,25 @@ const EmployeeConsultation = () => {
       setDeductionSum("");
     }
   };
-  const handleDeleteDeduction = async (id) => {
+  async function Deletded(id) {
     console.log(id);
     await deleteCreditEmployee(id);
     await GetDudection();
+  }
+  const handleDeleteDeduction = async (id) => {
+    Alert.alert(
+      "تأكيد الحذف",
+      "هل انت متأكد من الحذف؟",
+      [
+        { text: "إلغاء", style: "cancel" },
+        {
+          text: "حذف",
+          onPress: () => Deletded(id),
+          style: "destructive",
+        },
+      ],
+      { cancelable: true }
+    );
   };
   const handleAddEmployee = async () => {
     if (
@@ -180,10 +196,6 @@ const EmployeeConsultation = () => {
       />
 
       <Button title="تعديل" onPress={() => handleModifyEmployee(item)} />
-      <Button
-        title="حذف"
-        onPress={() => handleDeleteEmployee(item.Employee_ID)}
-      />
     </View>
   );
   async function GetAllEmployee() {

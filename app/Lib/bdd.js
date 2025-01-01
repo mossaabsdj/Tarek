@@ -1351,9 +1351,125 @@ const deleteExpense = async (expenseId) => {
     console.error("Error deleting expense:", error);
   }
 };
+const GetSumSalesMounthly = async (date) => {
+  try {
+    const dbInstance = await db; // Await the database instance
+
+    // Prepare the SQL query with placeholder
+    const statement = await dbInstance.prepareAsync(
+      "SELECT SUM(Montant_Total) AS TotalMontant FROM facture WHERE  DATE(Date_Creat) = DATE(?)"
+    );
+
+    // Execute the prepared statement with the provided parameters
+    const r = await statement.executeAsync([date]);
+
+    // Retrieve the result using getAllAsync
+    const result = await r.getAllAsync();
+
+    // Check if any result was returned
+
+    return result; // Return the sum or 0 if no data
+  } catch (error) {
+    console.error("Error fetching montant total by date:", error);
+    throw error;
+  }
+};
+
+const GetSumDeductionMounthly = async (date) => {
+  try {
+    const dbInstance = await db;
+
+    const statement = await dbInstance.prepareAsync(
+      "SELECT SUM(Somme) AS TotalCredit FROM Credit_Employee WHERE DATE(Date) = ?"
+    );
+
+    const r = await statement.executeAsync([date]);
+
+    const result = await r.getAllAsync();
+
+    if (result.length > 0) {
+      return result[0].TotalCredit || 0;
+    } else {
+      return 0;
+    }
+  } catch (error) {
+    console.error("Error fetching credit sum by date:", error);
+    throw error;
+  }
+};
+
+const GetSumExpensesMounthly = async (date) => {
+  try {
+    const dbInstance = await db;
+
+    const statement = await dbInstance.prepareAsync(
+      "SELECT SUM(Amount) AS TotalAmount FROM Expenses WHERE DATE(Date) = ?"
+    );
+
+    const r = await statement.executeAsync([date]);
+
+    const result = await r.getAllAsync();
+
+    if (result.length > 0) {
+      return result[0].TotalAmount || 0;
+    } else {
+      return 0;
+    }
+  } catch (error) {
+    console.error("Error fetching expenses sum by date:", error);
+    throw error;
+  }
+};
+
+async function GetDeductionsSumByEmployee() {
+  try {
+    const dbInstance = await db;
+
+    const statement = await dbInstance.prepareAsync(
+      `SELECT Employee_ID, SUM(Somme) AS TotalDeduction 
+       FROM Credit_Employee 
+       GROUP BY Employee_ID`
+    );
+
+    const r = await statement.executeAsync([]);
+
+    const results = await r.getAllAsync();
+
+    return results;
+  } catch (error) {
+    console.error("Error fetching deductions sum by employee:", error);
+    throw error;
+  }
+}
+
+async function GetMontantTotalByClient() {
+  try {
+    const dbInstance = await db;
+
+    const statement = await dbInstance.prepareAsync(
+      `SELECT Client_ID, SUM(Montant_Total) AS TotalMontant 
+       FROM facture 
+       GROUP BY Client_ID`
+    );
+
+    const r = await statement.executeAsync([]);
+
+    const results = await r.getAllAsync();
+
+    return results;
+  } catch (error) {
+    console.error("Error fetching montant total by client:", error);
+    throw error;
+  }
+}
 
 //--------------------------------------------------------------
 module.exports = {
+  GetMontantTotalByClient,
+  GetDeductionsSumByEmployee,
+  GetSumSalesMounthly,
+  GetSumDeductionMounthly,
+  GetSumExpensesMounthly,
   GetAll,
   // produt table methods
   addProduit,

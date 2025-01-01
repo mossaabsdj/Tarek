@@ -126,7 +126,7 @@ export default function SpanningTable({
     );
     setPlatVersmentInit(creditOmbalagee); // console.log("CreditPlat" + JSON.stringify(CreditPlat));
     const Facts = await GetFacture_ByID(id);
-    // console.log(JSON.stringify(Facts));
+    //console.log("Facts" + JSON.stringify(Facts));
     setAncientCreditMoneyinit(Facts[0].ancientCreditMoney); // Set the ancient credit for money to 1000
     setAncientCreditPlatinit(Facts[0].ancientCreditPlat); // Set the ancient credit for plat to 5
 
@@ -684,6 +684,198 @@ export default function SpanningTable({
       console.error("Error printing credit: ", error);
     }
   };
+
+  const printFullFacture = async () => {
+    var FullNom = "";
+    const client = await getClientById(CurrentClient_ID);
+    FullNom = client[0].Nom + " " + client[0].Prenom;
+
+    try {
+      const lastFacture = await getLastFactureId();
+      const factureId = lastFacture + 1;
+
+      // Generate the credit HTML section
+      const htmlCredit = `
+      <div class="credits">
+        <table>
+          ${[
+            {
+              title: "الديون السابقة",
+              items: [
+                { label: "المال", value: `${Ancientcreditmoneyinit}DA` },
+                { label: "الأطباق", value: AncientcreditPlatinit },
+              ],
+            },
+            {
+              title: "الديون الجديدة",
+              items: [
+                { label: "المال", value: `${Newcreditmoneyinit}DA` },
+                { label: "الأطباق", value: NewcreditPlatinit },
+              ],
+            },
+            {
+              title: "الدفعات",
+              items: [
+                { label: "المال", value: `${MoneyVersmentInit}DA` },
+
+                { label: "الأطباق", value: `${PlatVersmentInit}` },
+              ],
+            },
+            {
+              title: "الباقي",
+              items: [
+                { label: "المال", value: `${Restcreditmoneyinit}DA` },
+                { label: "الأطباق", value: RestcreditPlatinit },
+              ],
+            },
+          ]
+            .map(
+              (section) => `
+            <tr class="credit-section">
+              <th colspan="2" class="credit-title">${section.title}</th>
+            </tr>
+            ${section.items
+              .map(
+                (item) => `
+              <tr>
+                <th>${item.label}</th>
+                <td>${item.value}</td>
+              </tr>
+            `
+              )
+              .join("")}
+          `
+            )
+            .join("")}
+        </table>
+      </div>
+    `;
+
+      // Generate the full facture HTML only if invoiceSubtotal is not 0
+      const htmlFacture =
+        invoiceSubtotal !== 0
+          ? `
+      <div class="ticket">
+        
+
+        <div class="items">
+          <div class="item">
+            <span>الرقم</span>
+            <span>المنتج</span>
+            <span>السعر</span>
+            <span>الكمية</span>
+            <span>المجموع</span>
+          </div>
+          ${rows
+            .map(
+              (row, index) => `
+            <div class="item">
+              <span>${index + 1}</span>
+              <span>${row.Nom}</span>
+              <span>${row.Prix}DA</span>
+              <span>${row.Quantite}</span>
+              <span>${row.Sum}DA</span>
+            </div>
+          `
+            )
+            .join("")}
+        </div>
+
+        <div class="separator">- - - - - - - - - - - - - - - - - - - - - -</div>
+        <div class="total">المجموع: ${invoiceSubtotal}.00DA</div>
+      </div>
+    `
+          : "";
+
+      // Combine the two sections into one HTML content based on invoiceSubtotal
+      const htmlContent = `
+      <html>
+        <head>
+          <style>
+            body {
+              font-family: 'Tahoma', 'Arial', sans-serif;
+              margin: 0;
+              padding: 0;
+              direction: rtl;
+            }
+            .ticket, .credits {
+              width: 100%;
+              box-sizing: border-box;
+              padding: 0;
+            }
+            h1, .header, .separator, .date-client, .items, .item, .total, .credit-title, table, td, th {
+              margin: 0;
+              padding: 0;
+            }
+            .header {
+              font-size: 2.5em;
+              text-align: center;
+              padding-bottom: 5px;
+            }
+            .separator {
+              text-align: center;
+              font-size: 2em;
+              margin: 10px 0;
+            }
+            .date-client, .items, .credits {
+              font-size: 2em;
+              margin-bottom: 10px;
+              padding: 0 10px;
+            }
+            .items .item {
+              display: flex;
+              justify-content: space-between;
+              font-size: 1.4em;
+            }
+            .total {
+              font-size: 4em;
+              text-align: center;
+              margin-top: 10px;
+            }
+            table {
+              width: 100%;
+              font-size: 1.3em;
+              border-collapse: collapse;
+              margin-top: 20px;
+            }
+            td, th {
+              padding: 5px;
+              border-bottom: 1px dashed #000;
+            }
+            .credit-title {
+              font-weight: bold;
+              font-size: 1.5em;
+              text-align: center;
+            }
+              .date-client{
+              display: flex;
+              justify-content: space-between;}
+          </style>
+        </head>
+        <body>
+         <div class="header">قلب اللوز الطاهر</div>
+        <div class="header">رقم الفاتورة : ${factureId}</div>
+
+        <div class="date-client">
+          <div>${new Date().toLocaleDateString("fr-FR")}</div>
+          <div>اسم العميل: ${FullNom}</div>
+        </div>
+
+        <div class="separator">- - - - - - - - - - - - - - - - - - - - - -</div>
+          ${
+            htmlFacture + htmlCredit
+          } <!-- Only credit section if invoiceSubtotal is 0 -->
+        </body>
+      </html>
+    `;
+
+      await Print.printAsync({
+        html: htmlContent,
+      });
+    } catch (error) {
+      console.error("Error printing full facture: ", error);
+    }
+  };
   async function SaveAll() {
     let Total_Plat_String = TotalPlat.map(
       (tp) => tp["Plat"] + ": " + tp["Produit"]
@@ -718,7 +910,7 @@ export default function SpanningTable({
     <View style={styles.container}>
       <ScrollView style={styles.table} ref={scrollViewRef}>
         <View style={styles.head}>
-          <Pressable style={styles.iconButton} onPress={printFacture}>
+          <Pressable style={styles.iconButton} onPress={printFullFacture}>
             <Image source={PrintIcon} style={styles.icon} />
           </Pressable>
         </View>
