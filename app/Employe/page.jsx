@@ -554,6 +554,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     paddingHorizontal: 10,
     width: "100%",
+    textAlign: "left",
   },
   closeButton: {
     position: "absolute",

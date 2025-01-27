@@ -136,7 +136,7 @@ const SliderMenu = () => {
     setExpensesPage(true);
     sliderFunction();
   };
-
+  useEffect(() => {}, []);
   return (
     <View>
       <View>

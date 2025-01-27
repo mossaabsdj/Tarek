@@ -57,11 +57,13 @@
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-    "plugins": ["expo-router", "expo-asset", "expo-font"],
+    "plugins": ["expo-router", "expo-asset", "expo-font", "expo-localization"],
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
+      "supportsRTL": true,
+      "forcesRTL": true,
       "eas": {
         "projectId": "88b505f7-1a77-4a4c-b422-95d91a161c51"
       }

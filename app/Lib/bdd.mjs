@@ -1421,17 +1421,20 @@ const GetSumExpensesMounthly = async (date) => {
   }
 };
 
-async function GetDeductionsSumByEmployee() {
+async function GetDeductionsSumByEmployee(date) {
   try {
     const dbInstance = await db;
 
     const statement = await dbInstance.prepareAsync(
-      `SELECT Employee_ID, SUM(Somme) AS TotalDeduction 
-       FROM Credit_Employee 
-       GROUP BY Employee_ID`
+      `SELECT e.Employee_ID, e.Nom, e.Prenom, SUM(c.Somme) AS TotalDeduction
+       FROM Credit_Employee c
+       JOIN Employee e ON e.Employee_ID = c.Employee_ID
+       WHERE DATE(c.Date) = ?
+       GROUP BY e.Employee_ID`
     );
 
-    const r = await statement.executeAsync([]);
+    // Pass the date parameter to the query
+    const r = await statement.executeAsync([date]);
 
     const results = await r.getAllAsync();
 
@@ -1442,17 +1445,20 @@ async function GetDeductionsSumByEmployee() {
   }
 }
 
-async function GetMontantTotalByClient() {
+async function GetMontantTotalByClient(date) {
   try {
     const dbInstance = await db;
 
     const statement = await dbInstance.prepareAsync(
-      `SELECT Client_ID, SUM(Montant_Total) AS TotalMontant 
-       FROM facture 
-       GROUP BY Client_ID`
+      `SELECT c.Nom, c.Prenom, f.Client_ID, SUM(f.Montant_Total) AS TotalMontant
+       FROM facture f
+       JOIN Client c ON c.Client_ID = f.Client_ID
+       WHERE DATE(f.Date_Creat) = ?
+       GROUP BY f.Client_ID`
     );
 
-    const r = await statement.executeAsync([]);
+    // Passing the date parameter to the query
+    const r = await statement.executeAsync([date]);
 
     const results = await r.getAllAsync();
 
@@ -1463,6 +1469,11 @@ async function GetMontantTotalByClient() {
   }
 }
 
+async function a() {
+  const r = await GetSumDeductionMounthly();
+  console.log(JSON.stringify(r));
+}
+//a();
 //--------------------------------------------------------------
 module.exports = {
   GetMontantTotalByClient,

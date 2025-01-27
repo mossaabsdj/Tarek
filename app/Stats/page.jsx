@@ -1,12 +1,23 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Modal } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Modal,
+  I18nManager,
+} from "react-native";
 import {
   GetSumSalesMounthly,
   GetSumDeductionMounthly,
   GetSumExpensesMounthly,
 } from "@/app/Lib/bdd";
-import { Picker } from "@react-native-picker/picker"; // Correctly import Picker
+import * as Updates from "expo-updates";
 
+import { Picker } from "@react-native-picker/picker"; // Correctly import Picker
+import SalesDetails from "@/components/MountlyClient/page";
+import DeductionDetails from "@/components/MountlyDeductions/page";
+import ExpensesDetails from "@/components/MountlyExpenses/page";
 const StatsPage = () => {
   const [selectedMonth, setSelectedMonth] = useState("");
   const [selectedYear, setSelectedYear] = useState("");
@@ -14,7 +25,10 @@ const StatsPage = () => {
   const [TotalDeduction, setTotalDeduction] = useState("");
   const [TotalExpenses, setTotalExpenses] = useState("");
   const [isModalVisible, setModalVisible] = useState(false);
-
+  const [DisplaySalesDetails, setDisplaySalesDetails] = useState(false);
+  const [DisplayDeductionDetails, setDisplayDedctionDetails] = useState(false);
+  const [DisplayExpensesDetails, setDisplayExpensesDetails] = useState(false);
+  const [Current_Date, setCurrent_Date] = useState();
   const months = [
     "جانفي",
     "فيفري",
@@ -45,7 +59,7 @@ const StatsPage = () => {
   const handleSelectDate = () => {
     const selectedDate = formatDate(selectedMonth, selectedYear); // Format the date
     console.log("Selected Date: ", selectedDate);
-
+    setCurrent_Date(selectedDate);
     // Fetch stats with the selected month and year
     GetStats(selectedDate);
     setModalVisible(false); // Close the modal
@@ -65,112 +79,148 @@ const StatsPage = () => {
 
     // Format the date as YYYY-MM-DD
     const formattedDate = date.toISOString().split("T")[0];
+    setCurrent_Date(formattedDate);
     console.log("formattedDate" + formattedDate);
     GetStats(formattedDate);
   }, []);
+  function Return() {
+    setDisplayDedctionDetails(false);
+    setDisplaySalesDetails(false);
+    setDisplayExpensesDetails(false);
+  }
+
+  function GetMounth(d) {
+    if (d) {
+      var t = d.split("-");
+      return months[parseInt(t[1])] + " " + t[0];
+    }
+  }
   return (
-    <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.dateButton}
-        onPress={() => setModalVisible(true)}
-      >
-        <Text style={styles.buttonText}>تحديد التاريخ</Text>
-      </TouchableOpacity>
-      {/* Display Total Stats */}
-      <View style={styles.cards}>
-        {/* Card for إجمالي المبيعات */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>إجمالي المبيعات</Text>
-          <Text style={styles.cardValue}>{TotalSales[0]?.TotalMontant}</Text>
+    <>
+      {!DisplaySalesDetails &&
+      !DisplayExpensesDetails &&
+      !DisplayDeductionDetails ? (
+        <View style={styles.container}>
+          <Text style={styles.Date}>{GetMounth(Current_Date)}</Text>
+
           <TouchableOpacity
-            style={styles.detailsButton}
-            onPress={() => handleDetailsPress("إجمالي المبيعات")}
+            style={styles.dateButton}
+            onPress={() => setModalVisible(true)}
           >
-            <Text style={styles.buttonText}>تفاصيل</Text>
+            <Text style={styles.buttonText}>تحديد التاريخ</Text>
           </TouchableOpacity>
-        </View>
+          {/* Display Total Stats */}
+          <View style={styles.cards}>
+            {/* Card for إجمالي المبيعات */}
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>إجمالي المبيعات</Text>
+              <Text style={styles.cardValue}>
+                {TotalSales[0]?.TotalMontant || 0}
+              </Text>
+              <TouchableOpacity
+                style={styles.detailsButton}
+                onPress={() => {
+                  setDisplaySalesDetails(true);
+                }}
+              >
+                <Text style={styles.buttonText}>تفاصيل</Text>
+              </TouchableOpacity>
+            </View>
 
-        {/* Card for إجمالي الاقتطاعات */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>إجمالي الاقتطاعات</Text>
-          <Text style={styles.cardValue}>{TotalDeduction}</Text>
-          <TouchableOpacity
-            style={styles.detailsButton}
-            onPress={() => handleDetailsPress("إجمالي الاقتطاعات")}
-          >
-            <Text style={styles.buttonText}>تفاصيل</Text>
-          </TouchableOpacity>
-        </View>
+            {/* Card for إجمالي الاقتطاعات */}
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>إجمالي الاقتطاعات</Text>
+              <Text style={styles.cardValue}>{TotalDeduction}</Text>
+              <TouchableOpacity
+                style={styles.detailsButton}
+                onPress={() => {
+                  setDisplayDedctionDetails(true);
+                }}
+              >
+                <Text style={styles.buttonText}>تفاصيل</Text>
+              </TouchableOpacity>
+            </View>
 
-        {/* Card for إجمالي المصاريف */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>إجمالي المصاريف</Text>
-          <Text style={styles.cardValue}>{TotalExpenses}</Text>
-          <TouchableOpacity
-            style={styles.detailsButton}
-            onPress={() => handleDetailsPress("إجمالي المصاريف")}
-          >
-            <Text style={styles.buttonText}>تفاصيل</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Button to open Modal */}
-
-      {/* Modal to Select Month and Year */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={isModalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            {/* Month Picker */}
-            <Text style={styles.label}>اختر الشهر:</Text>
-            <Picker
-              selectedValue={selectedMonth}
-              onValueChange={(itemValue) => setSelectedMonth(itemValue)}
-              style={styles.picker}
-            >
-              <Picker.Item label="اختر الشهر" value="" />
-              {months.map((month, index) => (
-                <Picker.Item key={index} label={month} value={month} />
-              ))}
-            </Picker>
-
-            {/* Year Picker */}
-            <Text style={styles.label}>اختر السنة:</Text>
-            <Picker
-              selectedValue={selectedYear}
-              onValueChange={(itemValue) => setSelectedYear(itemValue)}
-              style={styles.picker}
-            >
-              <Picker.Item label="اختر السنة" value="" />
-              {years.map((year, index) => (
-                <Picker.Item key={index} label={year} value={year} />
-              ))}
-            </Picker>
-
-            {/* Confirm Button */}
-            <TouchableOpacity
-              style={styles.confirmButton}
-              onPress={handleSelectDate}
-            >
-              <Text style={styles.buttonText}>تأكيد</Text>
-            </TouchableOpacity>
-
-            {/* Cancel Button */}
-            <TouchableOpacity
-              style={[styles.confirmButton, styles.cancelButton]}
-              onPress={() => setModalVisible(false)}
-            >
-              <Text style={styles.buttonText}>إلغاء</Text>
-            </TouchableOpacity>
+            {/* Card for إجمالي المصاريف */}
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>إجمالي المصاريف</Text>
+              <Text style={styles.cardValue}>{TotalExpenses}</Text>
+              <TouchableOpacity
+                style={styles.detailsButton}
+                onPress={() => {
+                  setDisplayExpensesDetails(true);
+                }}
+              >
+                <Text style={styles.buttonText}>تفاصيل</Text>
+              </TouchableOpacity>
+            </View>
           </View>
+
+          {/* Button to open Modal */}
+
+          {/* Modal to Select Month and Year */}
+          <Modal
+            animationType="slide"
+            transparent={true}
+            visible={isModalVisible}
+            onRequestClose={() => setModalVisible(false)}
+          >
+            <View style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                {/* Month Picker */}
+                <Text style={styles.label}>اختر الشهر:</Text>
+                <Picker
+                  selectedValue={selectedMonth}
+                  onValueChange={(itemValue) => setSelectedMonth(itemValue)}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="اختر الشهر" value="" />
+                  {months.map((month, index) => (
+                    <Picker.Item key={index} label={month} value={month} />
+                  ))}
+                </Picker>
+
+                {/* Year Picker */}
+                <Text style={styles.label}>اختر السنة:</Text>
+                <Picker
+                  selectedValue={selectedYear}
+                  onValueChange={(itemValue) => setSelectedYear(itemValue)}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="اختر السنة" value="" />
+                  {years.map((year, index) => (
+                    <Picker.Item key={index} label={year} value={year} />
+                  ))}
+                </Picker>
+
+                {/* Confirm Button */}
+                <TouchableOpacity
+                  style={styles.confirmButton}
+                  onPress={handleSelectDate}
+                >
+                  <Text style={styles.buttonText}>تأكيد</Text>
+                </TouchableOpacity>
+
+                {/* Cancel Button */}
+                <TouchableOpacity
+                  style={[styles.confirmButton, styles.cancelButton]}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text style={styles.buttonText}>إلغاء</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
         </View>
-      </Modal>
-    </View>
+      ) : null}
+      {DisplayExpensesDetails && <ExpensesDetails handleReturn={Return} />}
+      {DisplayDeductionDetails && (
+        <DeductionDetails handleReturn={Return} Date={Current_Date} />
+      )}
+      {DisplaySalesDetails && (
+        <SalesDetails handleReturn={Return} Date={Current_Date} />
+      )}
+    </>
   );
 };
 
@@ -200,20 +250,25 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 2,
-    textAlign: "right",
+    textAlign: "left",
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 10,
-    textAlign: "right",
+    textAlign: "left",
+  },
+  Date: {
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "center",
   },
   cardValue: {
     fontSize: 24,
     fontWeight: "bold",
     color: "#4caf50",
     marginBottom: 15,
-    textAlign: "right",
+    textAlign: "left",
   },
   dateButton: {
     backgroundColor: "#28a745",
@@ -250,7 +305,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     marginBottom: 10,
-    textAlign: "right",
+    textAlign: I18nManager.isRTL ? "right" : "left",
   },
   picker: {
     backgroundColor: "#fff",

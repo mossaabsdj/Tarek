@@ -21,8 +21,9 @@ import {
 } from "@/app/Lib/bdd";
 import ArabicMonthYearPicker from "./picker";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  I18nManager,
   Image,
   Alert,
   Button,
@@ -1057,6 +1058,15 @@ const ClientConsultation = () => {
     console.log("products[0].Nom" + JSON.stringify(trueProducts[0]));
     // setSelectedProduct(trueProducts[0].Nom);
   }
+  useEffect(() => {
+    const shouldBeRTL = true;
+
+    if (shouldBeRTL !== I18nManager.isRTL && Platform.OS !== "web") {
+      I18nManager.allowRTL(shouldBeRTL);
+      I18nManager.forceRTL(shouldBeRTL);
+      Updates.reloadAsync();
+    }
+  }, []);
   useEffect(() => {
     if (Versment_Plat) {
       GetProduct(); //  console.log("selectedFacture" + selectedFacture);

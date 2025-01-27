@@ -9,6 +9,8 @@ import {
   Alert,
   Button,
 } from "react-native";
+import Constants from "expo-constants";
+import * as Updates from "expo-updates";
 import Sales from "../NewSales/page";
 import Slider from "@/components/SliderMenu/page";
 import { useEffect, useState } from "react";
@@ -49,9 +51,12 @@ export default function HomeScreen() {
     }
   }
   useEffect(() => {
-    if (!I18nManager.isRTL) {
-      I18nManager.forceRTL(false);
-      I18nManager.allowRTL(true);
+    const shouldBeRTL = true;
+
+    if (shouldBeRTL !== I18nManager.isRTL && Platform.OS !== "web") {
+      I18nManager.allowRTL(shouldBeRTL);
+      I18nManager.forceRTL(shouldBeRTL);
+      Updates.reloadAsync();
     }
     first_time();
     check();
