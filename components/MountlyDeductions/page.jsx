@@ -7,13 +7,31 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  Pressable,
+  Image,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome"; // Add FontAwesome for arrow icon
+import PrintIcon from "@/assets/icons/printer1.png";
+import * as Print from "expo-print";
+
 import { GetDeductionsSumByEmployee } from "@/app/Lib/bdd";
 const Page = ({ handleReturn, Date }) => {
   const [Employees, setEmployees] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-
+  const months = [
+    "جانفي",
+    "فيفري",
+    "مارس",
+    "أفريل",
+    "ماي",
+    "جوان",
+    "جويلية",
+    "أوت",
+    "سبتمبر",
+    "أكتوبر",
+    "نوفمبر",
+    "ديسمبر",
+  ];
   // Replace fetch with a hardcoded clients array
   useEffect(() => {
     const r = GetEmployee(Date);
@@ -28,16 +46,130 @@ const Page = ({ handleReturn, Date }) => {
     alert(`تم إرسال بيانات ${clientName} للطباعة`);
     // Add actual print functionality if needed
   };
+  function GetMounth(d) {
+    if (d) {
+      var t = d.split("-");
+      return months[parseInt(t[1] - 1)] + " " + t[0];
+    }
+  }
+  async function PrintEmployees() {
+    // Initialize total amount variable
+    console.log("printing....");
+    let All_Montant = 0;
+    // Create HTML content to format the factures for printing in Arabic (RTL)    border-right: 15px dashed #000;
+    const mounth = GetMounth(Date);
+    let htmlContent = `
+      <html dir="rtl" lang="ar">
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body { 
+              font-family: 'Arial', sans-serif; 
+              margin: 20px;
+              text-align: right; 
+              font-size: 18px; /* Increased font size */
+  
+              }
+            table { 
+              width: 100%; 
+              margin-top: 20px; 
+              direction: rtl; 
+              font-size: 5px; /* Increased font size for table */
+            }
+            th, td { 
+              padding: 12px; /* Increased padding */
+              text-align: right; 
+              font-size: 32px; /* Increased font size for table */
+            }
+            th { 
+              background-color: #f2f2f2; 
+            }
+          </style>
+        </head>
+        <body>
+         <div style="display: flex; justify-content: space-between; flex-direction: row;">
+    <h1 style="font-size: 45px;">تفاصيل الاقتطاعات لشهر ${mounth} </h1>
+  </div>
+  
+  
+          <table>
+            <tr>
+              <td colspan="2">-----------------------------------------------------------------</td>
+            </tr>
+            <tr>
+              <th>الاسم الكامل</th>
+              <th>اجمالي الاقتطاعات</th>        
+            </tr>
+            <tr>
+              <td colspan="2">-----------------------------------------------------------------</td>
+            </tr>
+    `;
 
-  const filteredEmployees = Employees?.filter((Employee) =>
-    Employee.Nom.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    // Add rows for each facture and sum up the total amounts
+    Employees.forEach((employee) => {
+      const { Nom, Prenom, TotalDeduction } = employee;
+
+      // Add the actual data row
+      htmlContent += `
+        <tr>
+          <td>${Nom + " " + Prenom}</td>
+          <td>${TotalDeduction}DA</td>
+        
+        </tr>
+        <tr>
+              <td colspan="2">-----------------------------------------------------------------</td>
+        </tr>
+      `;
+
+      // Accumulate the total for Montant_Total
+      All_Montant += TotalDeduction || 0; // Ensure that if Montant_Total is undefined, 0 is added
+    });
+
+    // Add the total montant at the end of the table
+    htmlContent += `
+      <tr>
+    <td colspan="2" style="text-align: center; font-weight: bold; font-size: 48px;">المجموع الإجمالي للاقتطاعات: ${All_Montant}DA</td>
+  </tr>
+      `;
+
+    // Close HTML content
+    htmlContent += `
+          </table>
+        </body>
+      </html>
+    `;
+
+    // Use expo-print to print the content
+    try {
+      await Print.printAsync({
+        html: htmlContent,
+      });
+    } catch (error) {
+      console.error("Print failed:", error);
+    }
+  }
+  const filteredEmployees = Employees?.filter((Employee) => {
+    const fullName = `${Employee.Nom} ${Employee.Prenom}`.toLowerCase(); // Combine Nom and Prenom
+    return fullName.includes(searchQuery.toLowerCase()); // Check if it includes the search query
+  });
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <TouchableOpacity style={styles.returnButton} onPress={handleReturn}>
-        <Icon name="arrow-right" size={20} color="#fff" />
-      </TouchableOpacity>
+      <View
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          justifyContent: "space-between",
+          marginBottom: 10,
+        }}
+      >
+        <TouchableOpacity style={styles.returnButton} onPress={handleReturn}>
+          <Icon name="arrow-right" size={20} color="#fff" />
+        </TouchableOpacity>
+        <Pressable style={styles.iconButton} onPress={PrintEmployees}>
+          <Image source={PrintIcon} style={styles.icon} />
+        </Pressable>
+      </View>
 
       <TextInput
         style={styles.searchInput}
@@ -56,11 +188,6 @@ const Page = ({ handleReturn, Date }) => {
               <Text style={styles.cardText}>
                 إجمالي الاقتطاعات: {Employee.TotalDeduction}DA
               </Text>
-              <Button
-                title="طباعة"
-                onPress={() => handlePrint(Employee.Nom)}
-                color="#007BFF"
-              />
             </View>
           ))}
         </View>
@@ -130,6 +257,26 @@ const styles = StyleSheet.create({
     width: "40",
     borderRadius: 20,
     marginBottom: 5,
+  },
+  iconButton: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "white",
+    borderColor: "#b5e2ff",
+    borderWidth: 2.5,
+    borderRadius: 10,
+    width: 60,
+    height: 35,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  icon: {
+    width: 30,
+    height: 30,
   },
 });
 

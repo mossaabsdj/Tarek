@@ -198,14 +198,8 @@ const ExpensesPage = ({ expense, Back, Fournisseur_ID }) => {
       Alert.alert("خطأ", "الرجاء ملء جميع الحقول بشكل صحيح.");
       return;
     }
-    console.log(
-      "all is:" + ID_Fournisseur,
-      newExpense.Description,
-      newExpense.Amount
-    );
-    await addExpense(newExpense.Description, newExpense.Amount, ID_Fournisseur);
-    const r = await GetAllExpenses();
-    console.log("R", r);
+    await addExpense(ID_Fournisseur, newExpense.Description, newExpense.Amount);
+    await GetAllExpenses();
     setAddExpenseModalVisible(false);
   };
 

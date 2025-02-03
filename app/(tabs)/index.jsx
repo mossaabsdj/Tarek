@@ -35,7 +35,9 @@ import {
   createCreditEmployeeTable,
   createVersmentPlatTable,
   createExpensesTable,
+  createFournisseurTable,
 } from "@/app/Lib/bdd";
+import Fournisseur from "@/app/Fournisseur/page";
 export default function HomeScreen() {
   const [firstTime, setfirstTime] = useState(true);
   const [app, setapp] = useState(false);
@@ -62,7 +64,7 @@ export default function HomeScreen() {
     check();
 
     // setfirstTime(false);
-
+    creatAll();
     // const r = GetAll("produit");
     // console.log("ssssss" + JSON.stringify(r));
     //alterFactureTable();
@@ -84,7 +86,7 @@ export default function HomeScreen() {
   };
   return (
     <View>
-      {!firstTime && <Slider />}
+      {!firstTime && <Fournisseur />}
       {firstTime && (
         <View style={styles.container}>
           <Text style={styles.label}>

@@ -13,7 +13,6 @@ async function creatAll(params) {
     console.log("Journal mode set to WAL.");
 
     // Await each table creation function to ensure they execute in sequence
-
     await CreatTable();
     await createExpensesTable();
     await createEmployeeTable();
@@ -23,7 +22,8 @@ async function creatAll(params) {
     await createVersmentTable();
     await createCreditEmployeeTable();
     await createVersmentPlatTable();
-
+    await createFournisseurTable();
+    await migrateExpensesTable();
     console.log("All tables created successfully.");
   } catch (error) {
     console.error("Error during database initialization:", error);
@@ -137,6 +137,23 @@ const createEmployeeTable = async () => {
     console.error("Error creating 'Employee' table:", error);
   }
 };
+const createFournisseurTable = async () => {
+  try {
+    await (
+      await db
+    ).execAsync(`
+        CREATE TABLE IF NOT EXISTS Fournisseur (
+          Fournisseur_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+          Nom TEXT NOT NULL,
+          Prenom TEXT NOT NULL,
+          Num TEXT NOT NULL
+        );
+      `);
+    console.log("Table 'Fournisseur' created successfully.");
+  } catch (error) {
+    console.error("Error creating 'Fournisseur' table:", error);
+  }
+};
 const createClientTable = async () => {
   try {
     await (
@@ -213,6 +230,80 @@ const createExpensesTable = async () => {
     console.log("Table 'Expenses' created successfully.");
   } catch (error) {
     console.error("Error creating 'Expenses' table:", error);
+  }
+};
+const migrateExpensesTable = async () => {
+  try {
+    const dbInstance = await db;
+
+    // Check if the column already exists
+    const result = await dbInstance.getAllSync(`
+      PRAGMA table_info(Expenses);
+    `);
+
+    const columnExists = result.some(
+      (column) => column.name === "Fournisseur_ID"
+    );
+
+    if (columnExists) {
+      console.log(
+        "Migration skipped: 'Fournisseur_ID' already exists in 'Expenses'."
+      );
+      return; // Exit function early if column already exists
+    }
+
+    await dbInstance.execAsync("PRAGMA foreign_keys = OFF;"); // Disable foreign key checks
+
+    await dbInstance.execAsync(`
+      CREATE TABLE IF NOT EXISTS Expenses_New (
+        Expense_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+        Description TEXT NOT NULL,
+        Amount REAL NOT NULL,
+        Date DATE DEFAULT (datetime('now', 'localtime')),
+        Fournisseur_ID INTEGER,
+        FOREIGN KEY (Fournisseur_ID) REFERENCES Fournisseur(Fournisseur_ID) ON DELETE SET NULL
+      );
+    `);
+
+    await dbInstance.execAsync(`
+      INSERT INTO Expenses_New (Expense_ID, Description, Amount, Date)
+      SELECT Expense_ID, Description, Amount, Date FROM Expenses;
+    `);
+
+    await dbInstance.execAsync(`
+      DROP TABLE Expenses;
+    `);
+
+    await dbInstance.execAsync(`
+      ALTER TABLE Expenses_New RENAME TO Expenses;
+    `);
+
+    await dbInstance.execAsync("PRAGMA foreign_keys = ON;"); // Re-enable foreign key checks
+
+    console.log(
+      "Table 'Expenses' migrated successfully with Fournisseur_ID as a foreign key."
+    );
+  } catch (error) {
+    console.error("Error migrating 'Expenses' table:", error);
+  }
+};
+const dropExpensesTable = async () => {
+  try {
+    const dbInstance = await db;
+
+    // Ensure all transactions are committed before dropping the table
+    await dbInstance.execAsync("PRAGMA foreign_keys = OFF;");
+    await dbInstance.execAsync("PRAGMA busy_timeout = 5000;"); // Wait up to 5s if DB is locked
+    await dbInstance.execAsync("VACUUM;"); // Free up the database and close open transactions
+
+    // Drop the table
+    await dbInstance.execAsync("DROP TABLE IF EXISTS Expenses;");
+
+    await dbInstance.execAsync("PRAGMA foreign_keys = ON;"); // Re-enable foreign keys
+
+    console.log("Table 'Expenses' dropped successfully.");
+  } catch (error) {
+    console.error("Error dropping 'Expenses' table:", error);
   }
 };
 
@@ -408,6 +499,23 @@ async function GetEmployee_Deduction(id) {
     await statement.finalize();
   } catch (error) {
     console.error("Error fetching product status:", error);
+  }
+}
+async function GetExpenses_With_Fournisseur(id) {
+  try {
+    // Prepare the SQL statement
+    const statement = await (
+      await db
+    ).prepareAsync("SELECT * FROM Expenses WHERE Fournisseur_ID = $id ");
+
+    // Execute the statement with the product name
+    const result = await statement.executeAsync({ $id: id });
+    const r = result.getAllAsync();
+    return r;
+    // Finalize the statement to release resources
+    await statement.finalize();
+  } catch (error) {
+    console.error("Error fetching Expeses status:", error);
   }
 }
 
@@ -792,6 +900,56 @@ const deleteClient = async (clientId) => {
     console.error("Error deleting client:", error);
   }
 };
+//---------------------------------------------------------
+//--Fournisseur------------------------------------------------------
+// Add a new fournisseur
+const addFournisseur = async (Nom, Prenom, Num) => {
+  try {
+    const dbConnection = await db;
+    await dbConnection.runAsync(
+      `INSERT INTO Fournisseur (Nom, Prenom, Num) VALUES (?, ?, ?)`,
+      [Nom, Prenom, Num]
+    );
+    console.log("Fournisseur added successfully.");
+  } catch (error) {
+    console.error("Error adding fournisseur:", error);
+  }
+};
+
+// Delete a fournisseur by Fournisseur_ID
+const deleteFournisseur = async (Fournisseur_ID) => {
+  try {
+    const dbConnection = await db;
+    await dbConnection.runAsync(
+      `DELETE FROM Fournisseur WHERE Fournisseur_ID = ?`,
+      [Fournisseur_ID]
+    );
+    console.log(`Fournisseur with ID ${Fournisseur_ID} deleted successfully.`);
+  } catch (error) {
+    console.error(
+      `Error deleting fournisseur with ID ${Fournisseur_ID}:`,
+      error
+    );
+  }
+};
+
+// Update a fournisseur's details
+const updateFournisseur = async (Fournisseur_ID, Nom, Prenom, Num) => {
+  try {
+    const dbConnection = await db;
+    await dbConnection.runAsync(
+      `UPDATE Fournisseur SET Nom = ?, Prenom = ?, Num = ? WHERE Fournisseur_ID = ?`,
+      [Nom, Prenom, Num, Fournisseur_ID]
+    );
+    console.log(`Fournisseur with ID ${Fournisseur_ID} updated successfully.`);
+  } catch (error) {
+    console.error(
+      `Error updating fournisseur with ID ${Fournisseur_ID}:`,
+      error
+    );
+  }
+};
+
 //---------------------------------------------------------
 //--Facture------------------------------------------------------
 const addFacture = async (
@@ -1311,7 +1469,7 @@ const deleteVersmentPlat2 = async (VersmentPlat_ID) => {
 };
 //expenses Table----------------------------------------
 // Expenses Table----------------------------------------
-const addExpense = async (description, amount) => {
+const addExpense = async (description, amount, Fournisseur_ID) => {
   if (description == null || description.trim() === "") {
     console.error("Error: 'Description' cannot be null, undefined, or empty.");
     return;
@@ -1325,8 +1483,8 @@ const addExpense = async (description, amount) => {
     await (
       await db
     ).execAsync(`
-      INSERT INTO Expenses (Description, Amount) 
-      VALUES ('${description}', ${amount});
+      INSERT INTO Expenses (Description, Amount,Fournisseur_ID) 
+      VALUES ('${description}', ${amount},${Fournisseur_ID});
     `);
     console.log("Expense added successfully.");
   } catch (error) {
@@ -1351,26 +1509,25 @@ const deleteExpense = async (expenseId) => {
     console.error("Error deleting expense:", error);
   }
 };
+
 const GetSumSalesMounthly = async (date) => {
   try {
     const dbInstance = await db; // Await the database instance
 
-    // Prepare the SQL query with placeholder
+    // Prepare the SQL query to sum up Montant_Total for the given month and year
     const statement = await dbInstance.prepareAsync(
-      "SELECT SUM(Montant_Total) AS TotalMontant FROM facture WHERE  DATE(Date_Creat) = DATE(?)"
+      "SELECT SUM(Montant_Total) AS TotalMontant FROM facture WHERE strftime('%Y-%m', Date_Creat) = strftime('%Y-%m', ?)"
     );
 
-    // Execute the prepared statement with the provided parameters
+    // Execute the prepared statement with the provided parameter
     const r = await statement.executeAsync([date]);
 
     // Retrieve the result using getAllAsync
     const result = await r.getAllAsync();
 
-    // Check if any result was returned
-
     return result; // Return the sum or 0 if no data
   } catch (error) {
-    console.error("Error fetching montant total by date:", error);
+    console.error("Error fetching montant total by month and year:", error);
     throw error;
   }
 };
@@ -1379,21 +1536,25 @@ const GetSumDeductionMounthly = async (date) => {
   try {
     const dbInstance = await db;
 
+    // Prepare the SQL query to sum up Somme for the given month and year
     const statement = await dbInstance.prepareAsync(
-      "SELECT SUM(Somme) AS TotalCredit FROM Credit_Employee WHERE DATE(Date) = ?"
+      "SELECT SUM(Somme) AS TotalCredit FROM Credit_Employee WHERE strftime('%Y-%m', Date) = strftime('%Y-%m', ?)"
     );
 
+    // Execute the prepared statement with the provided parameter
     const r = await statement.executeAsync([date]);
 
+    // Retrieve the result using getAllAsync
     const result = await r.getAllAsync();
 
+    // Return the sum if available, otherwise return 0
     if (result.length > 0) {
       return result[0].TotalCredit || 0;
     } else {
       return 0;
     }
   } catch (error) {
-    console.error("Error fetching credit sum by date:", error);
+    console.error("Error fetching credit sum by month and year:", error);
     throw error;
   }
 };
@@ -1402,21 +1563,25 @@ const GetSumExpensesMounthly = async (date) => {
   try {
     const dbInstance = await db;
 
+    // Prepare the SQL query to sum up Amount for the given month and year
     const statement = await dbInstance.prepareAsync(
-      "SELECT SUM(Amount) AS TotalAmount FROM Expenses WHERE DATE(Date) = ?"
+      "SELECT SUM(Amount) AS TotalAmount FROM Expenses WHERE strftime('%Y-%m', Date) = strftime('%Y-%m', ?)"
     );
 
+    // Execute the prepared statement with the provided parameter
     const r = await statement.executeAsync([date]);
 
+    // Retrieve the result using getAllAsync
     const result = await r.getAllAsync();
 
+    // Return the sum if available, otherwise return 0
     if (result.length > 0) {
       return result[0].TotalAmount || 0;
     } else {
       return 0;
     }
   } catch (error) {
-    console.error("Error fetching expenses sum by date:", error);
+    console.error("Error fetching expenses sum by month and year:", error);
     throw error;
   }
 };
@@ -1425,20 +1590,22 @@ async function GetDeductionsSumByEmployee(date) {
   try {
     const dbInstance = await db;
 
+    // Updated SQL query to filter by month and year
     const statement = await dbInstance.prepareAsync(
       `SELECT e.Employee_ID, e.Nom, e.Prenom, SUM(c.Somme) AS TotalDeduction
        FROM Credit_Employee c
        JOIN Employee e ON e.Employee_ID = c.Employee_ID
-       WHERE DATE(c.Date) = ?
+       WHERE strftime('%Y-%m', c.Date) = strftime('%Y-%m', ?)
        GROUP BY e.Employee_ID`
     );
 
-    // Pass the date parameter to the query
+    // Pass the date parameter (formatted as YYYY-MM) to the query
     const r = await statement.executeAsync([date]);
 
+    // Retrieve all results
     const results = await r.getAllAsync();
 
-    return results;
+    return results; // Return an array of deductions by employee
   } catch (error) {
     console.error("Error fetching deductions sum by employee:", error);
     throw error;
@@ -1449,26 +1616,48 @@ async function GetMontantTotalByClient(date) {
   try {
     const dbInstance = await db;
 
+    // Updated SQL query to filter by month and year
     const statement = await dbInstance.prepareAsync(
       `SELECT c.Nom, c.Prenom, f.Client_ID, SUM(f.Montant_Total) AS TotalMontant
        FROM facture f
        JOIN Client c ON c.Client_ID = f.Client_ID
-       WHERE DATE(f.Date_Creat) = ?
+       WHERE strftime('%Y-%m', f.Date_Creat) = strftime('%Y-%m', ?)
        GROUP BY f.Client_ID`
     );
 
-    // Passing the date parameter to the query
+    // Passing the date parameter (formatted as YYYY-MM) to the query
     const r = await statement.executeAsync([date]);
 
     const results = await r.getAllAsync();
 
-    return results;
+    return results; // Returns an array of clients with their total amounts
   } catch (error) {
     console.error("Error fetching montant total by client:", error);
     throw error;
   }
 }
+async function GetExpensesByMounth(date) {
+  try {
+    const dbInstance = await db;
 
+    // Updated SQL query to filter by month and year
+    const statement = await dbInstance.prepareAsync(
+      `SELECT Amount, Description, DATE(Date) as Date
+   FROM Expenses
+   WHERE strftime('%Y-%m', Date) = strftime('%Y-%m', ?)`
+    );
+
+    // Passing the date parameter (formatted as YYYY-MM) to the query
+    const r = await statement.executeAsync([date]);
+
+    const results = await r.getAllAsync();
+
+    return results; // Returns an array of clients with their total amounts
+  } catch (error) {
+    console.error("Error fetching montant total by client:", error);
+    throw error;
+  }
+}
 async function a() {
   const r = await GetSumDeductionMounthly();
   console.log(JSON.stringify(r));
@@ -1476,6 +1665,8 @@ async function a() {
 //a();
 //--------------------------------------------------------------
 module.exports = {
+  GetExpenses_With_Fournisseur,
+  GetExpensesByMounth,
   GetMontantTotalByClient,
   GetDeductionsSumByEmployee,
   GetSumSalesMounthly,
@@ -1486,7 +1677,10 @@ module.exports = {
   addProduit,
   updateProduit,
   deleteProduit,
-
+  //Fournisseur table methods
+  addFournisseur,
+  updateFournisseur,
+  deleteFournisseur,
   // Employee table methods
   addEmployee,
   updateEmployee,

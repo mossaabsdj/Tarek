@@ -92,7 +92,7 @@ const StatsPage = () => {
   function GetMounth(d) {
     if (d) {
       var t = d.split("-");
-      return months[parseInt(t[1])] + " " + t[0];
+      return months[parseInt(t[1] - 1)] + " " + t[0];
     }
   }
   return (
@@ -213,7 +213,9 @@ const StatsPage = () => {
           </Modal>
         </View>
       ) : null}
-      {DisplayExpensesDetails && <ExpensesDetails handleReturn={Return} />}
+      {DisplayExpensesDetails && (
+        <ExpensesDetails handleReturn={Return} Date={Current_Date} />
+      )}
       {DisplayDeductionDetails && (
         <DeductionDetails handleReturn={Return} Date={Current_Date} />
       )}
