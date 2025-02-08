@@ -24,6 +24,8 @@ async function creatAll(params) {
     await createVersmentPlatTable();
     await createFournisseurTable();
     await migrateExpensesTable();
+    await createVersment_FournisseurTable();
+
     console.log("All tables created successfully.");
   } catch (error) {
     console.error("Error during database initialization:", error);
@@ -217,9 +219,10 @@ const alterFactureTable = async () => {
 };
 const createExpensesTable = async () => {
   try {
-    await (
-      await db
-    ).execAsync(`
+    const dbInstance = await db;
+
+    // Create the table if it does not exist
+    await dbInstance.execAsync(`
       CREATE TABLE IF NOT EXISTS Expenses (
         Expense_ID INTEGER PRIMARY KEY AUTOINCREMENT,
         Description TEXT NOT NULL,
@@ -227,11 +230,47 @@ const createExpensesTable = async () => {
         Date DATE DEFAULT (datetime('now', 'localtime'))
       );
     `);
-    console.log("Table 'Expenses' created successfully.");
+
+    // Check if 'resttopayee' column exists
+    const result = await dbInstance.getAllSync(`
+      PRAGMA table_info(Expenses);
+    `);
+
+    const columnExists = result.some((col) => col.name === "rest_to_payee");
+
+    // Add the column if it does not exist
+    if (!columnExists) {
+      await dbInstance.execAsync(`
+        ALTER TABLE Expenses ADD COLUMN rest_to_payee REAL DEFAULT 0;
+      `);
+      console.log("Column 'resttopayee' added successfully.");
+    }
+
+    console.log("Table 'Expenses' checked/created successfully.");
   } catch (error) {
-    console.error("Error creating 'Expenses' table:", error);
+    console.error("Error creating/updating 'Expenses' table:", error);
   }
 };
+
+const createVersment_FournisseurTable = async () => {
+  try {
+    await (
+      await db
+    ).execAsync(`
+        CREATE TABLE IF NOT EXISTS Versment_Four (
+          Versment_Four_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+          Expense_ID INTEGER,
+          Somme REAL NOT NULL,
+          Date DATE DEFAULT (datetime('now', 'localtime')),
+          FOREIGN KEY (Expense_ID) REFERENCES Expenses(Expense_ID) ON DELETE CASCADE
+        );
+      `);
+    console.log("Table 'Versment' created successfully.");
+  } catch (error) {
+    console.error("Error creating 'Versment' table:", error);
+  }
+};
+
 const migrateExpensesTable = async () => {
   try {
     const dbInstance = await db;
@@ -1470,26 +1509,34 @@ const deleteVersmentPlat2 = async (VersmentPlat_ID) => {
 //expenses Table----------------------------------------
 // Expenses Table----------------------------------------
 const addExpense = async (description, amount, Fournisseur_ID) => {
-  if (description == null || description.trim() === "") {
+  if (!description || description.trim() === "") {
     console.error("Error: 'Description' cannot be null, undefined, or empty.");
-    return;
+    return null;
   }
   if (amount == null || isNaN(amount)) {
     console.error("Error: 'Amount' must be a valid number.");
-    return;
+    return null;
   }
 
   try {
-    await (
-      await db
-    ).execAsync(`
-      INSERT INTO Expenses (Description, Amount,Fournisseur_ID) 
-      VALUES ('${description}', ${amount},${Fournisseur_ID});
+    const dbInstance = await db;
+
+    // Insert the new expense
+    await dbInstance.execAsync(`
+      INSERT INTO Expenses (Description, Amount, Fournisseur_ID) 
+      VALUES ('${description}', ${amount}, ${Fournisseur_ID});
     `);
-    console.log("Expense added successfully.");
+
+    // Fetch the last inserted row ID
+    const result = await dbInstance.getAllSync(
+      `SELECT last_insert_rowid() AS Expense_ID;`
+    );
+
+    console.log("Expense added successfully with ID:", result[0].Expense_ID);
+    return result[0].Expense_ID;
   } catch (error) {
     console.error("Error adding expense:", error.message);
-    console.error("Stack Trace:", error.stack);
+    return null;
   }
 };
 
@@ -1509,7 +1556,54 @@ const deleteExpense = async (expenseId) => {
     console.error("Error deleting expense:", error);
   }
 };
+//VersmentFour-------------------------------------------------------
 
+// Add a new Versment_Four entry
+const addVersment_Four = async (expenseId, somme) => {
+  const dbInstance = await db;
+
+  try {
+    await dbInstance.execAsync(`
+      INSERT INTO Versment_Four (Expense_ID, Somme, Date) 
+      VALUES (${expenseId}, ${somme}, datetime('now', 'localtime'))
+    `);
+    console.log("Versment added successfully.");
+  } catch (error) {
+    console.error("Error adding Versment:", error);
+  }
+};
+
+// Delete a Versment_Four entry by ID
+const deleteVersment_Four = async (versmentId) => {
+  const dbInstance = await db;
+
+  try {
+    await dbInstance.execAsync(`
+      DELETE FROM Versment_Four WHERE Versment_Four_ID = ${versmentId}
+    `);
+    console.log("Versment deleted successfully.");
+  } catch (error) {
+    console.error("Error deleting Versment:", error);
+  }
+};
+
+// Update a Versment_Four entry (Somme) by ID
+const updateVersment_Four = async (versmentId, newSomme) => {
+  const dbInstance = await db;
+
+  try {
+    await dbInstance.execAsync(`
+      UPDATE Versment_Four 
+      SET Somme = ${newSomme}, Date = datetime('now', 'localtime') 
+      WHERE Versment_Four_ID = ${versmentId}
+    `);
+    console.log("Versment updated successfully.");
+  } catch (error) {
+    console.error("Error updating Versment:", error);
+  }
+};
+
+//------------------------------------------------------------------------
 const GetSumSalesMounthly = async (date) => {
   try {
     const dbInstance = await db; // Await the database instance
@@ -1658,6 +1752,60 @@ async function GetExpensesByMounth(date) {
     throw error;
   }
 }
+
+const GetSumExpenses_By_Fournisseur = async (Fournisseur_ID) => {
+  try {
+    const dbInstance = await db;
+
+    // Prepare the SQL query to sum up Amount for the given month and year
+    const statement = await dbInstance.prepareAsync(
+      "SELECT SUM(Amount) AS TotalAmount FROM Expenses WHERE Fournisseur_ID = ?"
+    );
+
+    // Execute the prepared statement with the provided parameter
+    const r = await statement.executeAsync([Fournisseur_ID]);
+
+    // Retrieve the result using getAllAsync
+    const result = await r.getAllAsync();
+
+    // Return the sum if available, otherwise return 0
+    if (result.length > 0) {
+      return result[0].TotalAmount || 0;
+    } else {
+      return 0;
+    }
+  } catch (error) {
+    console.error("Error fetching expenses sum by Fournisseur:", error);
+    throw error;
+  }
+};
+const GetSum_Versment_Expenses = async (Expense_ID) => {
+  try {
+    const dbInstance = await db;
+
+    // Prepare the SQL query to sum up Amount for the given month and year
+    const statement = await dbInstance.prepareAsync(
+      "SELECT SUM(Somme) AS TotalAmount FROM Versment_Four WHERE Expense_ID = ?"
+    );
+
+    // Execute the prepared statement with the provided parameter
+    const r = await statement.executeAsync([Expense_ID]);
+
+    // Retrieve the result using getAllAsync
+    const result = await r.getAllAsync();
+
+    // Return the sum if available, otherwise return 0
+    if (result.length > 0) {
+      return result[0].TotalAmount || 0;
+    } else {
+      return 0;
+    }
+  } catch (error) {
+    console.error("Error fetching  sum Versment:", error);
+    throw error;
+  }
+};
+
 async function a() {
   const r = await GetSumDeductionMounthly();
   console.log(JSON.stringify(r));
@@ -1665,6 +1813,8 @@ async function a() {
 //a();
 //--------------------------------------------------------------
 module.exports = {
+  GetSumExpenses_By_Fournisseur,
+  GetSum_Versment_Expenses,
   GetExpenses_With_Fournisseur,
   GetExpensesByMounth,
   GetMontantTotalByClient,
@@ -1673,6 +1823,11 @@ module.exports = {
   GetSumDeductionMounthly,
   GetSumExpensesMounthly,
   GetAll,
+  //Versment Fournisseur
+  addVersment_Four,
+  deleteVersment_Four,
+  updateVersment_Four,
+
   // produt table methods
   addProduit,
   updateProduit,
@@ -1716,7 +1871,10 @@ module.exports = {
   addVersmentPlat,
   updateVersmentPlat,
   deleteVersmentPlat2,
-  //-----
+  //Expenses
+  addExpense,
+  deleteExpense,
+  //--------------
   getProduitStatusByNom,
   GetClient_FacturesPlat,
   GetFactures_Factprod,
@@ -1743,8 +1901,7 @@ module.exports = {
   GetFacturesWithClientName,
   Get_ALL_Factures_Factprod,
   getClientByName,
-  addExpense,
-  deleteExpense,
+
   GetClient_Factures,
   GetEmployee_Deduction,
   getLastFactureId,

@@ -20,11 +20,14 @@ import {
   updateFournisseur,
   deleteFournisseur,
   GetExpenses_With_Fournisseur,
+  GetSumExpenses_By_Fournisseur,
+  GetSum_Versment_Expenses,
 } from "@/app/Lib/bdd";
 import ExpensesPage from "../Expenses/page";
 import FournisseurIcon from "@/assets/icons/Fournisseur.png"; // Icon for fournisseur
 import * as Print from "expo-print";
 import ArabicMonthYearPicker from "./picker";
+import { EventSubscriptionVendor } from "react-native/Libraries/vendor/emitter/EventEmitter";
 
 const columns = [
   { key: "Nom", label: "الاسم" },
@@ -52,7 +55,21 @@ const FournisseurConsultation = () => {
   const [Fournisseur_ID, setFournisseurs_Id] = useState();
 
   async function GetFournisseurs() {
+    let Versments = 0;
     const r = await GetAll("Fournisseur", setFournisseurs);
+    for (let f of r) {
+      const SumExpenses = await GetSumExpenses_By_Fournisseur(f.Fournisseur_ID);
+      f.SumExpenses = SumExpenses;
+      const expenses = await GetExpenses_With_Fournisseur(f.Fournisseur_ID);
+      for (let ex of expenses) {
+        console.log("ex" + JSON.stringify(ex));
+        const r = await GetSum_Versment_Expenses(ex.Expense_ID);
+        Versments = Versments + r;
+      }
+      f.TotalVersments = Versments;
+      f.RestToPayee = SumExpenses - Versments;
+      Versments = 0;
+    }
     setFilteredFournisseurs(r);
     console.log("fournisseurs" + JSON.stringify(r));
     // setFournisseurs(r);
@@ -114,6 +131,8 @@ const FournisseurConsultation = () => {
         <Text style={styles.value}>{item.Prenom}</Text>
         <Text style={styles.label}> رقم: </Text>
         <Text style={styles.value}>{item.Num}</Text>
+        <Text style={styles.label}> الباقي للدفع: </Text>
+        <Text style={styles.value}>{item.RestToPayee}</Text>
         <Button
           title="عرض"
           onPress={() => handleConsulterExpenses(item.Fournisseur_ID)}
@@ -244,6 +263,10 @@ const FournisseurConsultation = () => {
 
     await Print.printAsync({ html });
   };
+  const BackFunction = async () => {
+    setDisplayExpensesPage(false);
+    await GetFournisseurs();
+  };
   useEffect(() => {
     console.log("im here");
     GetFournisseurs();
@@ -264,6 +287,7 @@ const FournisseurConsultation = () => {
           <TextInput
             style={styles.searchInput}
             placeholder="ابحث عن بائع"
+            placeholderTextColor={"black"}
             value={searchQuery}
             onChangeText={handleSearch}
           />
@@ -278,9 +302,7 @@ const FournisseurConsultation = () => {
       {DisplayExpensesPage && (
         <ExpensesPage
           expense={Expenses}
-          Back={() => {
-            setDisplayExpensesPage(false);
-          }}
+          Back={BackFunction}
           Fournisseur_ID={Fournisseur_ID}
         />
       )}

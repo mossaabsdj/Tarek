@@ -18,6 +18,8 @@ import {
   deleteExpense,
   GetAll,
   GetExpenses_With_Fournisseur,
+  addVersment_Four,
+  GetSum_Versment_Expenses,
 } from "@/app/Lib/bdd";
 import * as Print from "expo-print";
 import ArabicMonthYearPicker from "./picker";
@@ -28,6 +30,8 @@ const ExpensesPage = ({ expense, Back, Fournisseur_ID }) => {
   const [isPickerVisible, setPickerVisible] = useState(false);
   const [ID_Fournisseur, setID_Fournisseur] = useState();
   const [addExpenseModalVisible, setAddExpenseModalVisible] = useState(false);
+  const [VersmentModel, setVersmentModel] = useState(true);
+  const [VersmentValue, setVersmentValue] = useState();
   const [newExpense, setNewExpense] = useState({
     Description: "",
     Amount: "",
@@ -138,11 +142,19 @@ const ExpensesPage = ({ expense, Back, Fournisseur_ID }) => {
       console.error("Error printing monthly expenses: ", error);
     }
   };
+  const handleAddVersment = async () => {
+    const id = await addExpense("", 0, ID_Fournisseur);
+    await addVersment_Four(id, VersmentValue);
+  };
 
   async function GetAllExpenses() {
-    const r = await GetExpenses_With_Fournisseur(ID_Fournisseur);
-    console.log("All" + JSON.stringify(r));
-    setExpenses(r);
+    const Expenses = await GetExpenses_With_Fournisseur(ID_Fournisseur);
+    for (let ex of Expenses) {
+      const Sum = await GetSum_Versment_Expenses(ex.Expense_ID);
+      ex.Versment = Sum;
+    }
+    console.log("All" + JSON.stringify(Expenses));
+    setExpenses(Expenses);
   }
 
   const getMonthYear = (date) => {
@@ -194,7 +206,7 @@ const ExpensesPage = ({ expense, Back, Fournisseur_ID }) => {
   };
 
   const addNewExpense = async () => {
-    if (!newExpense.Description || !newExpense.Amount) {
+    if (!newExpense.Description || !newExpense.Amount || !newExpense.Versment) {
       Alert.alert("خطأ", "الرجاء ملء جميع الحقول بشكل صحيح.");
       return;
     }
@@ -203,7 +215,14 @@ const ExpensesPage = ({ expense, Back, Fournisseur_ID }) => {
       newExpense.Description,
       newExpense.Amount
     );
-    await addExpense(newExpense.Description, newExpense.Amount, ID_Fournisseur);
+    const Expenses_ID = await addExpense(
+      newExpense.Description,
+      newExpense.Amount,
+      ID_Fournisseur
+    );
+    console.log("versment" + newExpense.Versment);
+    await addVersment_Four(Expenses_ID, newExpense.Versment);
+
     const r = await GetAllExpenses();
     console.log("R", r);
     setAddExpenseModalVisible(false);
@@ -214,6 +233,8 @@ const ExpensesPage = ({ expense, Back, Fournisseur_ID }) => {
       <Text style={styles.text}>الوصف: {item.Description}</Text>
       <Text style={styles.text}>المبلغ: {item.Amount}</Text>
       <Text style={styles.text}>التاريخ: {item.Date}</Text>
+      <Text style={styles.text}>المبلغ المدفوع: {item.Versment}</Text>
+
       <Button
         title="حذف"
         onPress={() => confirmDeleteExpense(item.Expense_ID)}
@@ -238,28 +259,29 @@ const ExpensesPage = ({ expense, Back, Fournisseur_ID }) => {
             setModalVisible2(true);
           }}
         >
-          <Text style={styles.totalButtonText}>إجمالي هذا الشهر</Text>
+          <Text style={styles.Button2}>إجمالي هذا الشهر</Text>
         </TouchableOpacity>
-
         <TouchableOpacity
-          style={[styles.totalButton, { backgroundColor: "#28a745" }]}
-          onPress={() => setModalVisible(true)}
+          style={styles.totalButton}
+          onPress={() => setPickerVisible(true)}
         >
-          <Text style={styles.totalButtonText}>إجمالي مصاريف السنة</Text>
+          <Text style={styles.Button2}>طباعة </Text>
         </TouchableOpacity>
       </View>
-      <TouchableOpacity
-        style={styles.totalButton}
-        onPress={() => setPickerVisible(true)}
-      >
-        <Text style={styles.totalButtonText}>طباعة </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.totalButton, { backgroundColor: "#ffc107" }]}
-        onPress={() => setAddExpenseModalVisible(true)}
-      >
-        <Text style={styles.totalButtonText}>إضافة مصاريف جديدة</Text>
-      </TouchableOpacity>
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={[styles.totalButton]}
+          onPress={() => setAddExpenseModalVisible(true)}
+        >
+          <Text style={styles.Button2}>إضافة مصاريف جديدة</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.totalButton}
+          onPress={() => setPickerVisible(true)}
+        >
+          <Text style={styles.Button2}>دفع </Text>
+        </TouchableOpacity>
+      </View>
 
       <FlatList
         data={expenses}
@@ -329,6 +351,7 @@ const ExpensesPage = ({ expense, Back, Fournisseur_ID }) => {
             <TextInput
               style={styles.input}
               placeholder="الوصف"
+              placeholderTextColor={"black"}
               value={newExpense.Description}
               onChangeText={(text) =>
                 setNewExpense({ ...newExpense, Description: text })
@@ -337,10 +360,21 @@ const ExpensesPage = ({ expense, Back, Fournisseur_ID }) => {
             <TextInput
               style={styles.input}
               placeholder="المبلغ"
+              placeholderTextColor={"black"}
               keyboardType="numeric"
               value={newExpense.Amount}
+              onChangeText={(text) => {
+                setNewExpense({ ...newExpense, Amount: text });
+              }}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="المبلغ المدفوع"
+              placeholderTextColor={"red"}
+              keyboardType="numeric"
+              value={newExpense.Versment}
               onChangeText={(text) =>
-                setNewExpense({ ...newExpense, Amount: text })
+                setNewExpense({ ...newExpense, Versment: text })
               }
             />
             <Button title="إضافة" onPress={addNewExpense} />
@@ -388,11 +422,19 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     width: "100%",
   },
+  Button2: {
+    backgroundColor: "#007bff",
+    borderRadius: 5,
+    color: "#fff",
+    fontWeight: "bold",
+    width: 140,
+    alignContent: "center",
+    textAlign: "center",
+  },
   totalButton: {
     backgroundColor: "#007bff",
     padding: 10,
     borderRadius: 5,
-    marginBottom: 5,
     alignItems: "center",
   },
   totalButtonText: {
