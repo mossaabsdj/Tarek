@@ -14,7 +14,10 @@ import Icon from "react-native-vector-icons/FontAwesome"; // Add FontAwesome for
 import PrintIcon from "@/assets/icons/printer1.png";
 import * as Print from "expo-print";
 
-import { GetExpensesByMounth } from "@/app/Lib/bdd.mjs";
+import {
+  GetExpensesByMounth,
+  GetExpensesSumByFournisseur,
+} from "@/app/Lib/bdd.mjs";
 const Page = ({ handleReturn, Date }) => {
   const [Expenses, setُExpenses] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -76,9 +79,8 @@ const Page = ({ handleReturn, Date }) => {
                 <td colspan="3">-----------------------------------------------------------------</td>
               </tr>
               <tr>
-                <th>الوصف</th>
-                <th>المبلغ</th>        
-                <th>التاريخ</th>
+                <th>الاسم الكامل</th>
+                <th>اجمالي المبلغ</th>        
               </tr>
               <tr>
                 <td colspan="3">-----------------------------------------------------------------</td>
@@ -87,14 +89,13 @@ const Page = ({ handleReturn, Date }) => {
 
     // Add rows for each facture and sum up the total amounts
     Expenses.forEach((ex) => {
-      const { Description, Amount, Date } = ex;
+      const { Nom, Prenom, TotalExpenses } = ex;
 
       // Add the actual data row
       htmlContent += `
           <tr>
-            <td>${Description}</td>
-            <td>${Amount}DA</td>
-            <td>${Date}</td>
+            <td>${Nom + " " + Prenom}</td>
+            <td>${TotalExpenses}DA</td>
           
           </tr>
           <tr>
@@ -103,13 +104,13 @@ const Page = ({ handleReturn, Date }) => {
         `;
 
       // Accumulate the total for Montant_Total
-      All_Montant += Amount || 0; // Ensure that if Montant_Total is undefined, 0 is added
+      All_Montant += TotalExpenses || 0; // Ensure that if Montant_Total is undefined, 0 is added
     });
 
     // Add the total montant at the end of the table
     htmlContent += `
         <tr>
-      <td colspan="3" style="text-align: center; font-weight: bold; font-size: 48px;">المجموع الإجمالي للمصاريف: ${All_Montant}DA</td>
+      <td colspan="3" style="text-align: center; font-weight: bold; font-size: 48px;">المجموع الإجمالي للمشتريات: ${All_Montant}DA</td>
     </tr>
         `;
 
@@ -131,8 +132,9 @@ const Page = ({ handleReturn, Date }) => {
   }
   async function GetExpeses(date) {
     const r = await GetExpensesByMounth(date);
-    console.log(JSON.stringify(r));
-    setُExpenses(r);
+    const rr = await GetExpensesSumByFournisseur(date);
+    console.log("rr" + JSON.stringify(rr));
+    setُExpenses(rr);
   }
   useEffect(() => {
     GetExpeses(Date);
@@ -143,7 +145,7 @@ const Page = ({ handleReturn, Date }) => {
   };
 
   const filteredExpenses = Expenses.filter((expenses) =>
-    expenses.Description.toLowerCase().includes(searchQuery.toLowerCase())
+    expenses.Nom.toLowerCase().includes(searchQuery.toLowerCase())
   );
   function GetMounth(d) {
     if (d) {
@@ -180,9 +182,12 @@ const Page = ({ handleReturn, Date }) => {
         <View style={styles.cardsContainer}>
           {filteredExpenses.map((expenses, index) => (
             <View key={index} style={styles.card}>
-              <Text style={styles.cardTitle}>{expenses.Description}</Text>
-              <Text style={styles.cardText}>المبلغ: {expenses.Amount}DA</Text>
-              <Text style={styles.cardText}>التاريخ: {expenses.Date}</Text>
+              <Text style={styles.cardTitle}>
+                {expenses.Nom + " " + expenses.Prenom}
+              </Text>
+              <Text style={styles.cardText}>
+                المبلغ: {expenses.TotalExpenses}DA
+              </Text>
             </View>
           ))}
         </View>

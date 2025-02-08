@@ -21,6 +21,7 @@ import EmployeeIcon from "@/assets/icons/workers.png";
 import FactureIcon from "@/assets/icons/invoice.png";
 import Clienticon from "@/assets/icons/Client.png";
 import Salesicon from "@/assets/icons/Sales.png";
+import FournisseurIcon from "@/assets/icons/Fournisseur.png"; // Icon for fournisseur
 import img from "@/assets/images/icon.png";
 import header from "@/assets/images/header.jpg";
 import IconExpenses from "@/assets/icons/spending.png";
@@ -32,6 +33,8 @@ import WelcomPage from "@/components/WelcomPage/page";
 import Enployee from "@/app/Employe/page";
 import Facture from "@/app/Factures/page";
 import Expenses from "@/app/Expenses/page";
+import Fournisseur from "@/app/Fournisseur/page";
+
 const { width: screenWidth } = Dimensions.get("window");
 
 const SliderMenu = () => {
@@ -44,6 +47,8 @@ const SliderMenu = () => {
   const [ClientPage, setClient] = useState(false);
   const [FacturesPage, setFactures] = useState(false);
   const [ProduitPage, setProduit] = useState(false);
+  const [FournisseurPage, setFournisseurPage] = useState(false);
+
   const sliderFunction = () => {
     if (open) {
       Animated.timing(slideAnim, {
@@ -71,6 +76,8 @@ const SliderMenu = () => {
     setEnployee(false);
     setProduit(false);
     setExpensesPage(false);
+    setFournisseurPage(false);
+
     sliderFunction();
   };
   const Display_Enployee = () => {
@@ -81,6 +88,8 @@ const SliderMenu = () => {
     setFactures(false);
     setEnployee(true);
     setProduit(false);
+    setFournisseurPage(false);
+
     sliderFunction();
   };
   const Display_Client = () => {
@@ -91,6 +100,8 @@ const SliderMenu = () => {
     setFactures(false);
     setEnployee(false);
     setProduit(false);
+    setFournisseurPage(false);
+
     sliderFunction();
   };
   const Display_Produit = () => {
@@ -102,6 +113,8 @@ const SliderMenu = () => {
     setFactures(false);
     setEnployee(false);
     setProduit(true);
+    setFournisseurPage(false);
+
     sliderFunction();
   };
   const Display_Factures = () => {
@@ -113,6 +126,8 @@ const SliderMenu = () => {
     setFactures(true);
     setEnployee(false);
     setProduit(false);
+    setFournisseurPage(false);
+
     sliderFunction();
   };
   const Display_WelcomPage = () => {
@@ -123,6 +138,7 @@ const SliderMenu = () => {
     setEnployee(false);
     setProduit(false);
     setExpensesPage(false);
+    setFournisseurPage(false);
 
     sliderFunction();
   };
@@ -133,7 +149,20 @@ const SliderMenu = () => {
     setFactures(false);
     setEnployee(false);
     setProduit(false);
+    setFournisseurPage(false);
+
     setExpensesPage(true);
+    sliderFunction();
+  };
+  const Display_Fournisseur = () => {
+    setWelcomPaged(false);
+    setSales(false);
+    setClient(false);
+    setFactures(false);
+    setEnployee(false);
+    setProduit(false);
+    setExpensesPage(false);
+    setFournisseurPage(true);
     sliderFunction();
   };
   useEffect(() => {}, []);
@@ -235,6 +264,21 @@ const SliderMenu = () => {
                   </View>
                 </TouchableOpacity>
                 <TouchableOpacity
+                  onPress={Display_Fournisseur}
+                  style={styles.navLink}
+                >
+                  <View
+                    style={{
+                      display: "flex",
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Text style={styles.navText}>البائعين</Text>
+                    <Image source={FournisseurIcon} style={styles.icon} />
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
                   onPress={Display_ExpensesPage}
                   style={styles.navLink}
                 >
@@ -295,6 +339,7 @@ const SliderMenu = () => {
         {FacturesPage && <Facture />}
         {EnployeePage && <Enployee />}
         {ExpensesPage && <Expenses />}
+        {FournisseurPage && <Fournisseur />}
       </View>
     </View>
   );

@@ -23,7 +23,7 @@ import {
   GetSumExpenses_By_Fournisseur,
   GetSum_Versment_Expenses,
 } from "@/app/Lib/bdd";
-import ExpensesPage from "../Expenses/page";
+import ExpensesPage from "@/components/ExpensesOfFournisseur/page";
 import FournisseurIcon from "@/assets/icons/Fournisseur.png"; // Icon for fournisseur
 import * as Print from "expo-print";
 import ArabicMonthYearPicker from "./picker";
@@ -54,6 +54,7 @@ const FournisseurConsultation = () => {
   const [editFournisseur, setEditFournisseur] = useState(null);
   const [Fournisseur_ID, setFournisseurs_Id] = useState();
 
+  const handleAddVersment = () => {};
   async function GetFournisseurs() {
     let Versments = 0;
     const r = await GetAll("Fournisseur", setFournisseurs);
@@ -386,7 +387,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 0,
   },
   icon: {
     width: 30,

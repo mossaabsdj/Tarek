@@ -11,25 +11,34 @@ import {
   TextInput,
   ScrollView,
 } from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome"; // Add FontAwesome for arrow icon
+
 import {
   addExpense,
   deleteExpense,
   GetAll,
-  GetAllExpensesWithFournisseurNom,
+  GetExpenses_With_Fournisseur,
+  addVersment_Four,
+  GetSum_Versment_Expenses,
 } from "@/app/Lib/bdd";
 import * as Print from "expo-print";
 import ArabicMonthYearPicker from "./picker";
-const ExpensesPage = () => {
+const ExpensesPage = ({ expense, Back, Fournisseur_ID }) => {
   const [expenses, setExpenses] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalVisible2, setModalVisible2] = useState(false);
   const [isPickerVisible, setPickerVisible] = useState(false);
-
+  const [ID_Fournisseur, setID_Fournisseur] = useState();
   const [addExpenseModalVisible, setAddExpenseModalVisible] = useState(false);
+  const [VersmentModel, setVersmentModel] = useState(false);
+  const [VersmentValue, setVersmentValue] = useState();
   const [newExpense, setNewExpense] = useState({
     Description: "",
     Amount: "",
   });
+  useState(() => {
+    setID_Fournisseur(Fournisseur_ID);
+  }, [Fournisseur_ID]);
   const handleConfirm = async (month, year) => {
     setPickerVisible(false);
 
@@ -133,12 +142,24 @@ const ExpensesPage = () => {
       console.error("Error printing monthly expenses: ", error);
     }
   };
-
+  const handleAddVersment = async () => {
+    const id = await addExpense("دفعة", 0, ID_Fournisseur);
+    await addVersment_Four(id, VersmentValue);
+    setVersmentModel(false);
+  };
+  useEffect(() => {
+    if (!VersmentModel) {
+      GetAllExpenses();
+    }
+  }, [VersmentModel]);
   async function GetAllExpenses() {
-    const all = await GetAllExpensesWithFournisseurNom();
-    // const r = await GetAll("Expenses", setExpenses);
-    setExpenses(all);
-    console.log("All" + JSON.stringify(all));
+    const Expenses = await GetExpenses_With_Fournisseur(ID_Fournisseur);
+    for (let ex of Expenses) {
+      const Sum = await GetSum_Versment_Expenses(ex.Expense_ID);
+      ex.Versment = Sum;
+    }
+    console.log("All" + JSON.stringify(Expenses));
+    setExpenses(Expenses);
   }
 
   const getMonthYear = (date) => {
@@ -190,29 +211,44 @@ const ExpensesPage = () => {
   };
 
   const addNewExpense = async () => {
-    if (!newExpense.Description || !newExpense.Amount) {
+    if (!newExpense.Description || !newExpense.Amount || !newExpense.Versment) {
       Alert.alert("خطأ", "الرجاء ملء جميع الحقول بشكل صحيح.");
       return;
     }
-    await addExpense(newExpense.Description, newExpense.Amount);
-    await GetAllExpenses();
+    console.log(
+      "all is:" + ID_Fournisseur,
+      newExpense.Description,
+      newExpense.Amount
+    );
+    const Expenses_ID = await addExpense(
+      newExpense.Description,
+      newExpense.Amount,
+      ID_Fournisseur
+    );
+    console.log("versment" + newExpense.Versment);
+    await addVersment_Four(Expenses_ID, newExpense.Versment);
+
+    const r = await GetAllExpenses();
+    console.log("R", r);
     setAddExpenseModalVisible(false);
   };
 
-  const renderExpenseItem = ({ item }) =>
-    item.Amount === 0 ? null : (
-      <View style={styles.card}>
-        <Text style={styles.text}>البائع: {item.Nom + " " + item.Prenom}</Text>
-        <Text style={styles.text}>الوصف: {item.Description}</Text>
+  const renderExpenseItem = ({ item }) => (
+    <View style={styles.card}>
+      <Text style={styles.text}>الوصف: {item.Description}</Text>
+      {item.Amount !== 0 && (
         <Text style={styles.text}>المبلغ: {item.Amount}</Text>
-        <Text style={styles.text}>التاريخ: {item.Date}</Text>
-        <Button
-          title="حذف"
-          onPress={() => confirmDeleteExpense(item.Expense_ID)}
-          color="#F96080"
-        />
-      </View>
-    );
+      )}
+      <Text style={styles.text}>التاريخ: {item.Date}</Text>
+      <Text style={styles.text}>المبلغ المدفوع: {item.Versment}</Text>
+
+      <Button
+        title="حذف"
+        onPress={() => confirmDeleteExpense(item.Expense_ID)}
+        color="#F96080"
+      />
+    </View>
+  );
 
   useEffect(() => {
     GetAllExpenses();
@@ -220,6 +256,9 @@ const ExpensesPage = () => {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity style={styles.returnButton} onPress={Back}>
+        <Icon name="arrow-right" size={20} color="#fff" />
+      </TouchableOpacity>
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={styles.totalButton}
@@ -227,22 +266,29 @@ const ExpensesPage = () => {
             setModalVisible2(true);
           }}
         >
-          <Text style={styles.totalButtonText}>إجمالي هذا الشهر</Text>
+          <Text style={styles.Button2}>إجمالي هذا الشهر</Text>
         </TouchableOpacity>
-
         <TouchableOpacity
-          style={[styles.totalButton, { backgroundColor: "#28a745" }]}
-          onPress={() => setModalVisible(true)}
+          style={styles.totalButton}
+          onPress={() => setPickerVisible(true)}
         >
-          <Text style={styles.totalButtonText}>إجمالي مصاريف السنة</Text>
+          <Text style={styles.Button2}>طباعة </Text>
         </TouchableOpacity>
       </View>
-      <TouchableOpacity
-        style={styles.totalButton}
-        onPress={() => setPickerVisible(true)}
-      >
-        <Text style={styles.totalButtonText}>طباعة </Text>
-      </TouchableOpacity>
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={[styles.totalButton]}
+          onPress={() => setAddExpenseModalVisible(true)}
+        >
+          <Text style={styles.Button2}>إضافة مصاريف جديدة</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.totalButton}
+          onPress={() => setVersmentModel(true)}
+        >
+          <Text style={styles.Button2}>دفع </Text>
+        </TouchableOpacity>
+      </View>
 
       <FlatList
         data={expenses}
@@ -312,6 +358,7 @@ const ExpensesPage = () => {
             <TextInput
               style={styles.input}
               placeholder="الوصف"
+              placeholderTextColor={"black"}
               value={newExpense.Description}
               onChangeText={(text) =>
                 setNewExpense({ ...newExpense, Description: text })
@@ -320,10 +367,21 @@ const ExpensesPage = () => {
             <TextInput
               style={styles.input}
               placeholder="المبلغ"
+              placeholderTextColor={"black"}
               keyboardType="numeric"
               value={newExpense.Amount}
+              onChangeText={(text) => {
+                setNewExpense({ ...newExpense, Amount: text });
+              }}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="المبلغ المدفوع"
+              placeholderTextColor={"red"}
+              keyboardType="numeric"
+              value={newExpense.Versment}
               onChangeText={(text) =>
-                setNewExpense({ ...newExpense, Amount: text })
+                setNewExpense({ ...newExpense, Versment: text })
               }
             />
             <Button title="إضافة" onPress={addNewExpense} />
@@ -333,6 +391,32 @@ const ExpensesPage = () => {
               onPress={() => setAddExpenseModalVisible(false)}
             />
           </View>
+        </View>
+      </Modal>
+      <Modal
+        animationType="slide"
+        transparent={false}
+        visible={VersmentModel}
+        onRequestClose={() => setVersmentModel(false)}
+      >
+        <View style={styles.modalView}>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => setVersmentModel(false)}
+          >
+            <Text style={styles.closeButtonText}>خروج</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.modalTitle}>اضافة دفعة </Text>
+          <TextInput
+            style={styles.inputModel}
+            placeholder="المبلغ"
+            value={VersmentValue}
+            keyboardType="numeric"
+            onChangeText={setVersmentValue}
+          />
+
+          <Button title="تأكيد الدفع" onPress={handleAddVersment} />
         </View>
       </Modal>
       <ArabicMonthYearPicker
@@ -371,11 +455,19 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     width: "100%",
   },
+  Button2: {
+    backgroundColor: "#007bff",
+    borderRadius: 5,
+    color: "#fff",
+    fontWeight: "bold",
+    width: 140,
+    alignContent: "center",
+    textAlign: "center",
+  },
   totalButton: {
     backgroundColor: "#007bff",
     padding: 10,
     borderRadius: 5,
-    marginBottom: 5,
     alignItems: "center",
   },
   totalButtonText: {
@@ -418,6 +510,63 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     paddingHorizontal: 10,
     marginBottom: 15,
+  },
+  returnButton: {
+    position: "relative",
+    marginBottom: 10,
+    backgroundColor: "#28a745", // Green background
+    padding: 10,
+    width: "40",
+    borderRadius: 20,
+  },
+  modalView: {
+    justifyContent: "center",
+    height: 200,
+    margin: 20,
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 35,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    marginTop: 100,
+  },
+
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 20,
+  },
+  closeButton: {
+    position: "absolute",
+    zIndex: 1000,
+    backgroundColor: "red",
+    borderRadius: 5,
+    width: 50,
+    height: 30,
+    top: 0,
+    left: 0,
+  },
+  closeButtonText: {
+    textAlign: "center",
+    marginTop: 5,
+    color: "white",
+    fontWeight: "bold",
+  },
+  inputModel: {
+    height: 40,
+    borderColor: "#ccc",
+    borderWidth: 1,
+    marginBottom: 15,
+    paddingHorizontal: 10,
+    width: "100%",
+    textAlign: "left",
   },
 });
 

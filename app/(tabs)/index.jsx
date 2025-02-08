@@ -37,7 +37,6 @@ import {
   createExpensesTable,
   createFournisseurTable,
 } from "@/app/Lib/bdd";
-import Fournisseur from "@/app/Fournisseur/page";
 export default function HomeScreen() {
   const [firstTime, setfirstTime] = useState(true);
   const [app, setapp] = useState(false);
@@ -86,7 +85,7 @@ export default function HomeScreen() {
   };
   return (
     <View>
-      {!firstTime && <Fournisseur />}
+      {!firstTime && <Slider />}
       {firstTime && (
         <View style={styles.container}>
           <Text style={styles.label}>

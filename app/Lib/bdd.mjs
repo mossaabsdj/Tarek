@@ -1752,6 +1752,31 @@ async function GetExpensesByMounth(date) {
     throw error;
   }
 }
+async function GetExpensesSumByFournisseur(date) {
+  try {
+    const dbInstance = await db;
+
+    // SQL query to get the total expenses per Fournisseur by month and year
+    const statement = await dbInstance.prepareAsync(
+      `SELECT f.Fournisseur_ID, f.Nom,f.Prenom, SUM(e.Amount) AS TotalExpenses
+       FROM Expenses e
+       JOIN Fournisseur f ON f.Fournisseur_ID = e.Fournisseur_ID
+       WHERE strftime('%Y-%m', e.Date) = strftime('%Y-%m', ?)
+       GROUP BY f.Fournisseur_ID`
+    );
+
+    // Pass the date parameter (formatted as YYYY-MM) to the query
+    const r = await statement.executeAsync([date]);
+
+    // Retrieve all results
+    const results = await r.getAllAsync();
+
+    return results; // Return an array of total expenses per fournisseur
+  } catch (error) {
+    console.error("Error fetching expenses sum by fournisseur:", error);
+    throw error;
+  }
+}
 
 const GetSumExpenses_By_Fournisseur = async (Fournisseur_ID) => {
   try {
@@ -1805,7 +1830,30 @@ const GetSum_Versment_Expenses = async (Expense_ID) => {
     throw error;
   }
 };
+async function GetAllExpensesWithFournisseurNom() {
+  try {
+    const dbInstance = await db;
 
+    // Updated SQL query to filter by month and year
+    const statement = await dbInstance.prepareAsync(
+      `SELECT e.Description, e.Amount, e.Fournisseur_ID,f.Nom,f.Prenom,e.Date,e.Expense_ID
+       FROM Expenses e
+       JOIN Fournisseur f ON f.Fournisseur_ID = e.Fournisseur_ID
+       `
+    );
+
+    // Pass the date parameter (formatted as YYYY-MM) to the query
+    const r = await statement.executeAsync();
+
+    // Retrieve all results
+    const results = await r.getAllAsync();
+
+    return results; // Return an array of deductions by employee
+  } catch (error) {
+    console.error("Error fetching All Expenses", error);
+    throw error;
+  }
+}
 async function a() {
   const r = await GetSumDeductionMounthly();
   console.log(JSON.stringify(r));
@@ -1813,6 +1861,9 @@ async function a() {
 //a();
 //--------------------------------------------------------------
 module.exports = {
+  GetExpensesSumByFournisseur,
+  GetSumExpenses_By_Fournisseur,
+  GetAllExpensesWithFournisseurNom,
   GetSumExpenses_By_Fournisseur,
   GetSum_Versment_Expenses,
   GetExpenses_With_Fournisseur,

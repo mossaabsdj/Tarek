@@ -115,7 +115,7 @@ const StatsPage = () => {
             <View style={styles.card}>
               <Text style={styles.cardTitle}>إجمالي المبيعات</Text>
               <Text style={styles.cardValue}>
-                {TotalSales[0]?.TotalMontant || 0}
+                {TotalSales[0]?.TotalMontant + "DA" || 0 + "DA"}
               </Text>
               <TouchableOpacity
                 style={styles.detailsButton}
@@ -130,7 +130,7 @@ const StatsPage = () => {
             {/* Card for إجمالي الاقتطاعات */}
             <View style={styles.card}>
               <Text style={styles.cardTitle}>إجمالي الاقتطاعات</Text>
-              <Text style={styles.cardValue}>{TotalDeduction}</Text>
+              <Text style={styles.cardValue}>{TotalDeduction}DA</Text>
               <TouchableOpacity
                 style={styles.detailsButton}
                 onPress={() => {
@@ -143,8 +143,8 @@ const StatsPage = () => {
 
             {/* Card for إجمالي المصاريف */}
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>إجمالي المصاريف</Text>
-              <Text style={styles.cardValue}>{TotalExpenses}</Text>
+              <Text style={styles.cardTitle}>إجمالي المشتريات</Text>
+              <Text style={styles.cardValue}>{TotalExpenses}DA</Text>
               <TouchableOpacity
                 style={styles.detailsButton}
                 onPress={() => {
